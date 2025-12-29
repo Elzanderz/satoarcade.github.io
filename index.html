@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SATO ARCADE</title>
+    <title>SATO ARCADE - WEB3</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,42 +17,38 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
-    <!-- Font: Noto Sans Thai (Primary) + Chakra Petch (Tech) -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 
     <!-- Tailwind Config -->
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: { 
                         sans: ['"Noto Sans Thai"', 'sans-serif'],
-                        tech: ['"Chakra Petch"', 'sans-serif']
+                        tech: ['"Rajdhani"', 'sans-serif']
                     },
                     colors: { 
-                        crypto: {
-                            bg: '#050508',
-                            primary: '#6366f1',
-                            accent: '#00f3ff',
-                            success: '#10b981',
-                            danger: '#ef4444',
-                            gold: '#fbbf24'
-                        }
+                        'neon-blue': '#00f3ff',
+                        'neon-purple': '#bc13fe',
+                        'neon-green': '#0aff68',
+                        'glass-bg': 'rgba(10, 10, 20, 0.75)',
+                        'glass-border': 'rgba(255, 255, 255, 0.1)',
                     },
                     animation: {
-                        'pulse-fast': 'pulse 0.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'float': 'float 6s ease-in-out infinite',
+                        'shimmer': 'shimmer 2s linear infinite',
                     },
                     keyframes: {
-                        glow: {
-                            'from': { boxShadow: '0 0 5px #00f3ff, 0 0 10px #00f3ff' },
-                            'to': { boxShadow: '0 0 20px #00f3ff, 0 0 30px #00f3ff' }
-                        },
                         float: {
                             '0%, 100%': { transform: 'translateY(0)' },
                             '50%': { transform: 'translateY(-10px)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '200% 0' },
+                            '100%': { backgroundPosition: '-200% 0' }
                         }
                     }
                 }
@@ -63,77 +59,94 @@
     <style>
         body { 
             font-family: 'Noto Sans Thai', sans-serif; 
-            background-color: #020204;
+            background-color: #050508;
             color: #e2e8f0;
             overflow-x: hidden;
             touch-action: manipulation;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(188, 19, 254, 0.15), transparent 50%),
+                radial-gradient(circle at 0% 100%, rgba(0, 243, 255, 0.1), transparent 50%);
         }
         
-        .web3-bg {
-            background-image: 
-                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            position: fixed; inset: 0; z-index: 0; pointer-events: none;
-            perspective: 1000px;
+        .web3-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            position: fixed; inset: 0; z-index: -1;
+            mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
         }
 
         .glass-panel {
-            background: rgba(18, 18, 24, 0.85);
-            backdrop-filter: blur(20px);
+            background: rgba(20, 20, 35, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
             border-radius: 1.5rem;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .game-card {
-            background: linear-gradient(180deg, rgba(30, 30, 40, 0.8) 0%, rgba(10, 10, 15, 0.9) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 1.5rem;
-            overflow: hidden;
-            transition: all 0.3s;
-            cursor: pointer;
-            position: relative;
-        }
-        .game-card:hover {
-            transform: translateY(-5px);
-            border-color: #00f3ff;
-            box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
         }
 
-        .tech-input {
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid #333;
-            color: #00f3ff;
-            font-family: 'Chakra Petch', sans-serif;
-            letter-spacing: 1px;
+        .nft-card {
+            background: linear-gradient(145deg, rgba(30, 30, 45, 0.6) 0%, rgba(10, 10, 15, 0.8) 100%);
+            border: 1px solid rgba(0, 243, 255, 0.1);
+            position: relative; overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .nft-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: rgba(0, 243, 255, 0.5);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+        }
+        .nft-card::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: 0.5s;
+        }
+        .nft-card:hover::before { left: 100%; }
+
+        .btn-cyber {
+            background: linear-gradient(90deg, #00f3ff, #bc13fe);
+            background-size: 200% 200%;
+            border: none; color: black; font-weight: bold;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
             transition: all 0.3s;
         }
-        .tech-input:focus {
-            border-color: #00f3ff;
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
-            outline: none;
+        .btn-cyber:hover {
+            animation: shimmer 2s linear infinite;
+            filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.5));
         }
 
-        .text-glow { text-shadow: 0 0 10px rgba(0, 243, 255, 0.7); }
-        .dice-face {
-            width: 45px; height: 45px; display: flex; justify-content: center; align-items: center;
-            border-radius: 8px; font-weight: bold; font-size: 24px;
-            background: #1a1a20; border: 1px solid #333; box-shadow: inset 0 0 10px #000;
+        /* 3D Card Flip */
+        .card-container { perspective: 1000px; }
+        .card-inner {
+            position: relative; width: 100%; height: 100%; text-align: center;
+            transition: transform 0.6s; transform-style: preserve-3d;
         }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #050508; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
-        ::-webkit-scrollbar-thumb:hover { background: #00f3ff; }
+        .card-flipped { transform: rotateY(180deg); }
+        .card-front, .card-back {
+            position: absolute; width: 100%; height: 100%;
+            backface-visibility: hidden; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .card-front { background: #1a1a2e; border: 2px solid #333; }
+        .card-back { 
+            background: linear-gradient(135deg, #2a2a4a, #1a1a2e); 
+            border: 2px solid #bc13fe; transform: rotateY(180deg); 
+            box-shadow: 0 0 15px rgba(188, 19, 254, 0.4);
+        }
+
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #00f3ff; }
     </style>
 </head>
-<body class="min-h-screen relative selection:bg-crypto-accent selection:text-black">
-    <div class="web3-bg"></div>
+<body class="min-h-screen">
+    <div class="web3-grid"></div>
     <div id="root" class="relative z-10"></div>
 
     <script type="text/babel">
-        // --- CONFIG ---
+        // --- FIREBASE CONFIG ---
         let firebaseConfig = {
             apiKey: "AIzaSyCXqkbLFskjFsKkpsf2FBucRiagg5XB8o4",
             authDomain: "bingo-sato.firebaseapp.com",
@@ -144,14 +157,14 @@
             measurementId: "G-VDFPGKGN8Q"
         };
         
-        if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config);
+        if (typeof __firebase_config !== 'undefined') {
+            try { firebaseConfig = JSON.parse(__firebase_config); } catch(e) { console.error(e); }
+        }
         
-        // --- FIXED APP ID (Dynamic) ---
         let APP_ID = 'sato-arcade-main-db';
         if (typeof __app_id !== 'undefined') APP_ID = __app_id;
 
-        const HOST_PASSWORD = "hostsato56";
-        const BGM_URL = "https://cdn.pixabay.com/download/audio/2022/03/15/audio_73663a8301.mp3"; 
+        const BGM_URL = "https://cdn.pixabay.com/download/audio/2022/03/15/audio_b299e56312.mp3?filename=cyberpunk-city-11000.mp3";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
@@ -160,290 +173,820 @@
         const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
         // --- CONSTANTS ---
-        const INITIAL_CREDITS = 500;
-        const DEFAULT_PRICE = 50;
-
-        const SHOP_ITEMS = [
-            { id: 'room_ticket', name: 'ตั๋วสร้างห้อง', type: 'item', price: 500, css: 'text-yellow-400 border-yellow-500' },
-            { id: 'frame_default', name: 'กรอบเริ่มต้น', type: 'frame', price: 0, css: 'border-2 border-slate-600' },
-            { id: 'frame_gold', name: 'กรอบทองคำ', type: 'frame', price: 500, css: 'border-2 border-yellow-400 shadow-[0_0_15px_#fbbf24] bg-yellow-900/20' },
-            { id: 'frame_neon', name: 'กรอบนีออน', type: 'frame', price: 1000, css: 'border-2 border-cyan-400 shadow-[0_0_15px_#22d3ee] bg-cyan-900/20' },
-            { id: 'title_default', name: 'สีชื่อปกติ', type: 'title', price: 0, css: 'text-slate-400' },
-            { id: 'title_gold', name: 'สีชื่อทอง', type: 'title', price: 800, css: 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 font-bold' },
-        ];
-
-        // --- ICONS ---
-        const Icons = {
-            User: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-            Crown: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>,
-            Cube: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
-            Bingo: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>,
-            Dice: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="15" r="1"/></svg>,
-            Run: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
-            Home: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-            Music: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>,
-            MusicOff: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3.14A3 3 0 0 0 6 18c1.66 0 3-1.34 3-3v-2"/><path d="M21 16a3 3 0 0 0-3-3v-3l-4.08-1.36"/></svg>,
-            Shopping: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
-            Lock: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
-            Door: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>,
-            Send: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
-            Logout: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-            Edit: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-            Wallet: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><line x1="12" x2="12" y1="15" y2="15"/></svg>,
-            Diamond: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 3h12l4 6-10 13L2 9z"/></svg>,
-            ArrowRight: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        const INITIAL_CREDITS = 1000;
+        
+        const VIP_LEVELS = {
+            NONE: { name: 'Free', color: 'text-slate-400', bonus: 1 },
+            SILVER: { name: 'Silver VIP', color: 'text-slate-200', border: 'border-slate-300', price: 3000, days: 30, bonus: 1.1 },
+            GOLD: { name: 'Gold VIP', color: 'text-yellow-400', border: 'border-yellow-500', price: 8000, days: 30, bonus: 1.2 },
+            PLATINUM: { name: 'Platinum VIP', color: 'text-cyan-400', border: 'border-cyan-400', price: 15000, days: 30, bonus: 1.5 }
         };
 
-        // --- COMPONENTS ---
-        
-        function LogoDisplay({ small }) {
+        const SHOP_ITEMS = [
+            { id: 'ticket_room', name: 'ตั๋วสร้างห้อง', type: 'consumable', price: 500, desc: 'ใช้สร้างห้องบิงโก 1 ครั้ง', icon: '🎫' },
+            { id: 'vip_silver', name: 'VIP Silver (30 วัน)', type: 'vip', level: 'SILVER', price: 3000, desc: '+10% Bonus', icon: '🥈' },
+            { id: 'vip_gold', name: 'VIP Gold (30 วัน)', type: 'vip', level: 'GOLD', price: 8000, desc: 'สร้างห้องฟรี, +20% Bonus', icon: '🥇' },
+            { id: 'vip_platinum', name: 'VIP Platinum (30 วัน)', type: 'vip', level: 'PLATINUM', price: 15000, desc: 'สร้างห้องฟรี, ชื่อสีพิเศษ, +50% Bonus', icon: '💎' },
+            { id: 'char_cat', name: 'Neko Bot', type: 'char', price: 2000, desc: 'หุ่นแมวน้อยน่ารัก', icon: '🐱' },
+            { id: 'frame_neon', name: 'กรอบนีออน', type: 'frame', price: 1000, desc: 'กรอบเรืองแสง', icon: '🖼️' },
+        ];
+
+        // --- ICONS (SVG) ---
+        const Icons = {
+            Home: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+            User: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            Shop: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,
+            Trophy: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+            Music: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>,
+            Bag: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
+            Robot: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>,
+            Star: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+            Ticket: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>,
+            Brain: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-4z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-4z"/></svg>,
+            Run: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+            Bingo: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+        };
+
+        // --- AUDIO ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const playSfx = (type) => {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+            
+            if (type === 'click') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'coin') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(1000, now); osc.frequency.linearRampToValueAtTime(1500, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'win') {
+                osc.type = 'square'; 
+                osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554, now + 0.1); osc.frequency.setValueAtTime(659, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.6);
+                osc.start(now); osc.stop(now + 0.6);
+            } else if (type === 'jump') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(300, now + 0.15);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            }
+        };
+
+        // --- UTILS ---
+        const getVipStatus = (user) => {
+            if (!user.vipLevel || !user.vipExpires) return VIP_LEVELS.NONE;
+            const now = new Date();
+            const expire = user.vipExpires.toDate();
+            if (now > expire) return VIP_LEVELS.NONE;
+            return VIP_LEVELS[user.vipLevel] || VIP_LEVELS.NONE;
+        };
+
+        const formatDate = (timestamp) => {
+            if (!timestamp) return '-';
+            return new Date(timestamp.toDate()).toLocaleDateString('th-TH');
+        };
+
+        // --- SUB-COMPONENTS ---
+
+        function InventoryModal({ userData, userProfile, db, onClose }) {
+            const equipItem = async (type, id) => {
+                playSfx('click');
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ [`equipped.${type}`]: id });
+            };
+
+            const inventoryItems = SHOP_ITEMS.filter(i => (userData.inventory || []).includes(i.id));
+            const ticketCount = (userData.inventory || []).filter(x => x === 'ticket_room').length;
+
             return (
-                <div className={`flex flex-col items-center justify-center ${small ? 'mb-4' : 'mb-10 animate-float'}`}>
-                    <div className="relative group">
-                        <div className={`${small ? 'h-16 w-16' : 'h-32 w-32'} bg-black/80 border border-crypto-primary rounded-xl flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.5)] relative overflow-hidden`}>
-                            <div className="absolute inset-0 bg-gradient-to-br from-crypto-primary/20 to-transparent"></div>
-                            <Icons.Cube className={`${small ? 'w-8 h-8' : 'w-16 h-16'} text-crypto-primary relative z-10`} />
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="glass-panel w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+                        <div className="p-4 border-b border-glass-border flex justify-between items-center bg-white/5">
+                            <h2 className="text-xl font-tech font-bold text-neon-purple flex items-center gap-2"><Icons.Bag className="w-5 h-5"/> กระเป๋าของฉัน</h2>
+                            <button onClick={onClose} className="text-red-400 hover:text-white">✕</button>
+                        </div>
+                        <div className="p-4 overflow-y-auto custom-scroll space-y-4">
+                            {/* Tickets Section */}
+                            <div className="bg-white/5 p-3 rounded-xl border border-white/10 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="text-2xl">🎫</div>
+                                    <div>
+                                        <div className="font-bold text-white text-sm">ตั๋วสร้างห้อง</div>
+                                        <div className="text-xs text-slate-400">ใช้สำหรับสร้างห้องบิงโก</div>
+                                    </div>
+                                </div>
+                                <div className="text-xl font-mono text-neon-blue font-bold">x{ticketCount}</div>
+                            </div>
+
+                            {/* Other Items */}
+                            <div className="grid grid-cols-2 gap-3">
+                                {inventoryItems.filter(i => i.type !== 'consumable').map(item => {
+                                    const isEquipped = userData.equipped?.[item.type] === item.id;
+                                    return (
+                                        <div key={item.id} className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${isEquipped ? 'bg-neon-blue/10 border-neon-blue' : 'bg-white/5 border-white/10'}`}>
+                                            <div className="text-3xl drop-shadow-lg">{item.icon}</div>
+                                            <div className="text-xs font-bold text-slate-200">{item.name}</div>
+                                            {item.type !== 'vip' && (
+                                                <button onClick={() => equipItem(item.type, item.id)} className={`text-[10px] px-3 py-1 rounded-full w-full font-bold ${isEquipped ? 'bg-neon-blue text-black' : 'bg-white/10 hover:bg-white/20'}`}>
+                                                    {isEquipped ? 'สวมใส่อยู่' : 'สวมใส่'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {inventoryItems.length === 0 && ticketCount === 0 && <div className="text-center text-slate-500 py-10">ว่างเปล่า... ไปช้อปปิ้งกันเถอะ!</div>}
                         </div>
                     </div>
-                    {!small && (
-                        <div className="mt-6 text-center">
-                            <h1 className="text-4xl font-tech font-bold italic tracking-tighter text-white drop-shadow-lg">SATO <span className="text-crypto-primary">ARCADE LOGIN</span></h1>
-                            <p className="text-[10px] text-slate-400 font-mono tracking-[0.5em] mt-2 uppercase">WEB3 GAMING PROTOCOL</p>
+                </div>
+            );
+        }
+
+        function ShopModal({ userData, userProfile, db, currentAppId, onClose }) {
+            const buyItem = async (item) => {
+                playSfx('click');
+                if (userData.credits < item.price) return alert('เงินไม่พอครับ!');
+                
+                try {
+                    const userRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid);
+                    
+                    if (item.type === 'vip') {
+                        // VIP Logic: Add days based on current expiry or now
+                        let newExpire = new Date();
+                        const currentVip = getVipStatus(userData);
+                        
+                        // If upgrading or extending same level
+                        if (userData.vipExpires && userData.vipExpires.toDate() > new Date()) {
+                             newExpire = userData.vipExpires.toDate();
+                        }
+                        newExpire.setDate(newExpire.getDate() + item.days);
+
+                        await userRef.update({
+                            credits: firebase.firestore.FieldValue.increment(-item.price),
+                            vipLevel: item.level,
+                            vipExpires: firebase.firestore.Timestamp.fromDate(newExpire)
+                        });
+                    } else {
+                        // Normal Item / Consumable
+                        await userRef.update({
+                            credits: firebase.firestore.FieldValue.increment(-item.price),
+                            inventory: firebase.firestore.FieldValue.arrayUnion(item.id)
+                        });
+                    }
+                    playSfx('win');
+                    alert(`ซื้อ ${item.name} เรียบร้อย!`);
+                } catch (e) {
+                    console.error(e);
+                    alert('เกิดข้อผิดพลาด');
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-zoom-in">
+                    <div className="glass-panel w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
+                        <div className="p-5 border-b border-glass-border flex justify-between items-center bg-white/5">
+                            <div>
+                                <h2 className="text-2xl font-tech font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple">NFT MARKETPLACE</h2>
+                                <p className="text-xs text-slate-400 tracking-widest uppercase">Select your upgrades</p>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="px-4 py-2 rounded-full bg-black/40 border border-white/10 font-mono text-neon-green">
+                                    💰 {userData.credits.toLocaleString()}
+                                </div>
+                                <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500/50 transition-colors">✕</button>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 custom-scroll">
+                            {SHOP_ITEMS.map(item => (
+                                <div key={item.id} className="nft-card p-4 rounded-2xl flex flex-col gap-3 group">
+                                    <div className="h-32 bg-black/30 rounded-xl flex items-center justify-center text-6xl group-hover:scale-110 transition-transform">
+                                        {item.icon}
+                                    </div>
+                                    <div>
+                                        <div className="flex justify-between items-start">
+                                            <h3 className="font-bold text-white group-hover:text-neon-blue transition-colors">{item.name}</h3>
+                                            <span className="text-xs px-2 py-1 rounded bg-white/10 text-slate-300">{item.type.toUpperCase()}</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1 h-8">{item.desc}</p>
+                                    </div>
+                                    <button onClick={() => buyItem(item)} className="mt-auto w-full py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-neon-blue/20 hover:border-neon-blue hover:text-white transition-all flex items-center justify-center gap-2">
+                                        <span>💎</span> {item.price.toLocaleString()}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- GAMES ---
+
+        // 1. MEMORY MATCH (Icons Version)
+        function MemoryMatch({ userData, userProfile, db, updateCredits, onClose }) {
+            const [cards, setCards] = useState([]);
+            const [turns, setTurns] = useState(0);
+            const [choiceOne, setChoiceOne] = useState(null);
+            const [choiceTwo, setChoiceTwo] = useState(null);
+            const [disabled, setDisabled] = useState(false);
+            const [score, setScore] = useState(0);
+            const [gameState, setGameState] = useState('start');
+
+            // ใช้ SVG Component หรือ Emoji ที่ชัดเจน
+            const cardIcons = ['🚀', '🛸', '🤖', '👾', '💎', '🧬', '🔮', '🔋'];
+
+            const shuffleCards = () => {
+                // เลือก 6 คู่
+                const selected = cardIcons.slice(0, 6);
+                const shuffledCards = [...selected, ...selected]
+                    .sort(() => Math.random() - 0.5)
+                    .map((icon) => ({ icon, id: Math.random(), matched: false }));
+                
+                setChoiceOne(null);
+                setChoiceTwo(null);
+                setCards(shuffledCards);
+                setTurns(0);
+                setScore(0);
+                setGameState('playing');
+                playSfx('click');
+            };
+
+            const handleChoice = (card) => {
+                if (disabled) return;
+                playSfx('click');
+                choiceOne ? setChoiceTwo(card) : setChoiceOne(card);
+            };
+
+            useEffect(() => {
+                if (choiceOne && choiceTwo) {
+                    setDisabled(true);
+                    if (choiceOne.icon === choiceTwo.icon) {
+                        setCards(prev => prev.map(c => (c.icon === choiceOne.icon ? { ...c, matched: true } : c)));
+                        setScore(prev => prev + 100);
+                        playSfx('coin');
+                        resetTurn();
+                    } else {
+                        setTimeout(() => resetTurn(), 1000);
+                    }
+                }
+            }, [choiceOne, choiceTwo]);
+
+            const resetTurn = () => {
+                setChoiceOne(null); setChoiceTwo(null); setTurns(prev => prev + 1); setDisabled(false);
+            };
+
+            useEffect(() => {
+                if (cards.length > 0 && cards.every(c => c.matched)) {
+                    setGameState('won'); playSfx('win');
+                    // Save Highscore
+                    const finalScore = Math.max(0, score - (turns * 10));
+                    if (finalScore > (userData.highscores?.memory || 0)) {
+                        db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ 'highscores.memory': finalScore });
+                    }
+                }
+            }, [cards, score]);
+
+            return (
+                <div className="glass-panel p-6 h-full flex flex-col items-center justify-center animate-zoom-in relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent"></div>
+                    <div className="flex justify-between w-full mb-6 relative z-10">
+                        <h2 className="text-2xl font-tech font-bold text-neon-purple flex items-center gap-2"><Icons.Brain className="w-6 h-6"/> MEMORY PROTOCOL</h2>
+                        <button onClick={onClose} className="text-xs text-slate-400 hover:text-white border border-white/20 px-3 py-1 rounded-full">EXIT</button>
+                    </div>
+
+                    {gameState === 'start' && (
+                        <div className="text-center z-10">
+                            <div className="text-6xl mb-4 animate-bounce">🧠</div>
+                            <h3 className="text-xl font-bold text-white mb-2">ทดสอบความจำ</h3>
+                            <p className="text-slate-400 mb-6 text-sm">จับคู่โฮโลแกรมให้ครบเพื่อรับเหรียญรางวัล</p>
+                            <button onClick={shuffleCards} className="btn-cyber px-10 py-3 text-lg">START GAME</button>
+                        </div>
+                    )}
+
+                    {gameState === 'playing' && (
+                        <div className="w-full max-w-md z-10">
+                            <div className="flex justify-between text-xs font-mono text-neon-blue mb-4">
+                                <span>TURNS: {turns}</span>
+                                <span>SCORE: {score}</span>
+                            </div>
+                            <div className="grid grid-cols-4 gap-3">
+                                {cards.map(card => (
+                                    <div key={card.id} className="aspect-square card-container cursor-pointer" onClick={() => !card.matched && handleChoice(card)}>
+                                        <div className={`card-inner ${(card === choiceOne || card === choiceTwo || card.matched) ? 'card-flipped' : ''}`}>
+                                            <div className="card-front">
+                                                <div className="w-8 h-8 rounded-full bg-slate-700/50 flex items-center justify-center text-slate-500 text-xs">?</div>
+                                            </div>
+                                            <div className="card-back text-3xl drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
+                                                {card.icon}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {gameState === 'won' && (
+                        <div className="text-center z-10 bg-black/60 p-8 rounded-2xl border border-neon-green backdrop-blur-xl animate-fade-in">
+                            <h3 className="text-3xl font-bold text-neon-green mb-2">MISSION COMPLETE</h3>
+                            <p className="text-white mb-6 font-mono text-xl">Score: {Math.max(0, score - (turns * 10))}</p>
+                            <button onClick={async () => { await updateCredits(Math.floor(Math.max(0, score - turns*10)/2)); onClose(); }} className="px-8 py-3 bg-neon-green text-black font-bold rounded-lg hover:shadow-[0_0_20px_#0aff68]">COLLECT REWARD</button>
                         </div>
                     )}
                 </div>
             );
         }
 
-        // --- SLIDER BUTTON ---
-        function SliderButton({ onComplete, text, disabled, loading, resetTrigger }) {
-            const [isDragging, setIsDragging] = useState(false);
-            const [sliderX, setSliderX] = useState(0);
-            const containerRef = useRef(null);
-            const [completed, setCompleted] = useState(false);
+        // 2. CYBER RUNNER (Cute Bot Version)
+        function CyberRunner({ userData, db, userProfile, updateCredits, onClose }) {
+            const canvasRef = useRef(null);
+            const [gameState, setGameState] = useState('menu');
+            const [score, setScore] = useState(0);
+            
+            // Draw Cute Bot Function
+            const drawBot = (ctx, x, y, color) => {
+                // Body (Rounded Rect)
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(x, y, 30, 25, 5);
+                ctx.fill();
+                // Screen (Face)
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.roundRect(x + 5, y + 5, 20, 15, 2);
+                ctx.fill();
+                // Eyes (Cute)
+                ctx.fillStyle = '#0aff68';
+                ctx.shadowColor = '#0aff68'; ctx.shadowBlur = 5;
+                ctx.fillRect(x + 8, y + 9, 4, 4);
+                ctx.fillRect(x + 18, y + 9, 4, 4);
+                ctx.shadowBlur = 0;
+                // Antenna
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(x + 15, y); ctx.lineTo(x + 15, y - 5); ctx.stroke();
+                ctx.beginPath(); ctx.arc(x + 15, y - 7, 2, 0, Math.PI*2); ctx.fill();
+                // Wheels/Legs (Simple)
+                ctx.fillStyle = '#333';
+                ctx.beginPath(); ctx.arc(x + 8, y + 25, 4, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x + 22, y + 25, 4, 0, Math.PI*2); ctx.fill();
+            };
+
+            const startGame = () => { setGameState('playing'); setScore(0); playSfx('click'); };
 
             useEffect(() => {
-                if (resetTrigger > 0) {
-                    setCompleted(false); setSliderX(0); setIsDragging(false);
-                }
-            }, [resetTrigger]);
+                if (gameState !== 'playing') return;
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let frameId;
+                let frames = 0;
+                let speed = 5;
+                let localScore = 0;
 
-            const handleStart = (e) => { if (!disabled && !completed && !loading) setIsDragging(true); };
+                // Game Objects
+                const player = { x: 50, y: 220, w: 30, h: 30, dy: 0, jumpPower: -10, grounded: true, baseY: 220 };
+                let obstacles = [];
+                let coins = [];
+                let bgOffset = 0;
 
-            const handleMove = useCallback((e) => {
-                if (!isDragging || completed) return;
-                const container = containerRef.current;
-                if(!container) return;
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const rect = container.getBoundingClientRect();
-                let x = clientX - rect.left - 28; 
-                const max = rect.width - 56; 
-                if (x < 0) x = 0; if (x > max) x = max;
-                setSliderX(x);
-                if (x >= max - 2) { setIsDragging(false); setCompleted(true); onComplete(); }
-            }, [isDragging, completed, onComplete]);
+                // Loop
+                const loop = () => {
+                    frameId = requestAnimationFrame(loop);
+                    frames++;
+                    ctx.clearRect(0,0,600,300);
 
-            const handleEnd = useCallback(() => { if (!isDragging) return; setIsDragging(false); if (!completed) setSliderX(0); }, [isDragging, completed]);
+                    // --- DRAW BACKGROUND (Cyber City) ---
+                    const grad = ctx.createLinearGradient(0,0,0,300);
+                    grad.addColorStop(0, '#050510'); grad.addColorStop(1, '#1a1a2e');
+                    ctx.fillStyle = grad; ctx.fillRect(0,0,600,300);
 
-            useEffect(() => {
-                if (isDragging) {
-                    document.addEventListener('mousemove', handleMove); document.addEventListener('mouseup', handleEnd);
-                    document.addEventListener('touchmove', handleMove); document.addEventListener('touchend', handleEnd);
-                } else {
-                    document.removeEventListener('mousemove', handleMove); document.removeEventListener('mouseup', handleEnd);
-                    document.removeEventListener('touchmove', handleMove); document.removeEventListener('touchend', handleEnd);
-                }
-                return () => {
-                    document.removeEventListener('mousemove', handleMove); document.removeEventListener('mouseup', handleEnd);
-                    document.removeEventListener('touchmove', handleMove); document.removeEventListener('touchend', handleEnd);
-                }
-            }, [isDragging, handleMove, handleEnd]);
-
-            return (
-                <div ref={containerRef} className={`relative w-full h-14 bg-black/40 border border-white/10 rounded-full overflow-hidden select-none ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                    <div className="absolute inset-0 flex items-center justify-center text-sm font-tech tracking-[0.2em] text-white/50 pointer-events-none animate-pulse">
-                        {loading ? 'กำลังเชื่อมต่อ...' : (completed ? 'สำเร็จ!' : text)}
-                    </div>
-                    <div className="absolute top-0 left-0 h-full bg-crypto-primary/20 transition-all duration-75 ease-linear" style={{ width: `${sliderX + 56}px` }} />
-                    <div onMouseDown={handleStart} onTouchStart={handleStart} className="absolute top-1 left-1 w-12 h-12 bg-white rounded-full shadow-lg cursor-grab flex items-center justify-center text-crypto-primary z-10 transition-transform active:scale-95 hover:scale-105" style={{ transform: `translateX(${sliderX}px)` }}>
-                        {loading ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-crypto-primary border-t-transparent"></div> : <Icons.ArrowRight className="w-6 h-6"/>}
-                    </div>
-                </div>
-            );
-        }
-
-        // --- AUTH ---
-        function AuthScreen({ onJoin, db }) {
-            const [mode, setMode] = useState('login'); 
-            const [username, setUsername] = useState('');
-            const [password, setPassword] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [error, setError] = useState('');
-            const [resetSlider, setResetSlider] = useState(0); 
-
-            const processAuth = async () => {
-                setError('');
-                if(!username || !password) { setResetSlider(p => p + 1); return setError("กรุณากรอกข้อมูลให้ครบ"); }
-                const cleanId = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-                if (cleanId.length < 3) { setResetSlider(p => p + 1); return setError("ชื่อผู้ใช้ต้องยาวอย่างน้อย 3 ตัว"); }
-
-                setLoading(true);
-                try {
-                    let role = 'player';
-                    let isAdminLogin = false;
-                    if(username === 'admin' && password === HOST_PASSWORD) { role = 'host'; isAdminLogin = true; }
-                    if (!db) throw new Error("ระบบกำลังเชื่อมต่อ... กรุณารอสักครู่");
-
-                    const userRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(cleanId);
-                    const doc = await userRef.get();
-
-                    if (mode === 'register') {
-                        if (doc.exists) throw new Error("ชื่อนี้มีคนใช้แล้ว");
-                         await userRef.set({
-                            username: username, password: password, role: isAdminLogin ? 'host' : 'player',
-                            credits: isAdminLogin ? 999999 : INITIAL_CREDITS, level: 1, xp: 0,
-                            inventory: ['frame_default', 'title_default'], equipped: { frame: 'frame_default', title: 'title_default' },
-                            isVip: isAdminLogin, joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        onJoin(cleanId, username, isAdminLogin ? 'host' : 'player');
-                    } else {
-                        if (!doc.exists) {
-                             if (isAdminLogin) {
-                                await userRef.set({
-                                    username: 'ADMIN', password: HOST_PASSWORD, role: 'host', credits: 999999, level: 99, xp: 0, isVip: true, inventory: [], equipped: {}, joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-                                });
-                             } else { throw new Error("ไม่พบชื่อผู้ใช้ (กรุณาสมัครก่อน)"); }
-                        }
-                        const data = doc.exists ? doc.data() : { password: HOST_PASSWORD };
-                        if (!isAdminLogin && data.password !== password) throw new Error("รหัสผ่านไม่ถูกต้อง");
-                        onJoin(cleanId, data.username || username, data.role || role);
+                    // Parallax Skyline
+                    bgOffset -= 0.5;
+                    ctx.fillStyle = 'rgba(0, 243, 255, 0.1)';
+                    for(let i=0; i<10; i++) {
+                        let h = 50 + Math.sin(i*123)*30;
+                        let x = (i * 80 + bgOffset) % 800;
+                        if(x < -80) x += 800;
+                        ctx.fillRect(x, 300 - 50 - h, 40, h);
                     }
-                } catch(e) { setError(e.message); setLoading(false); setResetSlider(p => p + 1); }
-            };
 
-            return (
-                <div className="min-h-screen flex items-center justify-center p-4">
-                    <div className="glass-panel p-8 max-w-sm w-full text-center border-t-2 border-neon-blue shadow-[0_0_50px_rgba(0,243,255,0.2)]">
-                        <div className="mb-6"><LogoDisplay /></div>
-                        <div className="flex bg-black/40 rounded-xl p-1.5 mb-8 border border-white/10">
-                            <button onClick={() => setMode('login')} className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${mode === 'login' ? 'bg-white text-black shadow-lg' : 'text-slate-400 hover:text-white'}`}>เข้าสู่ระบบ</button>
-                            <button onClick={() => setMode('register')} className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${mode === 'register' ? 'bg-white text-black shadow-lg' : 'text-slate-400 hover:text-white'}`}>สมัครใหม่</button>
-                        </div>
-                        <div className="space-y-5">
-                            <div className="relative group"><input className="tech-input w-full px-5 py-4 rounded-2xl text-sm placeholder-slate-500 pl-12" placeholder="ชื่อผู้ใช้" value={username} onChange={e=>setUsername(e.target.value)} /><div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-crypto-primary"><Icons.User className="w-5 h-5"/></div></div>
-                            <div className="relative group"><input className="tech-input w-full px-5 py-4 rounded-2xl text-sm placeholder-slate-500 pl-12" type="password" placeholder="รหัสผ่าน" value={password} onChange={e=>setPassword(e.target.value)} /><div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-crypto-primary"><Icons.Lock className="w-5 h-5"/></div></div>
-                            {error && <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl flex items-center justify-center gap-2 animate-pulse">⚠️ {error}</div>}
-                            {mode === 'login' ? (<SliderButton onComplete={processAuth} text="สไลด์เพื่อเข้าสู่ระบบ" loading={loading} resetTrigger={resetSlider} />) : (<button onClick={processAuth} disabled={loading} className="w-full bg-white hover:bg-slate-200 text-black font-bold py-4 rounded-2xl shadow-lg transition-all font-tech tracking-widest text-sm">{loading ? 'กำลังสร้างบัญชี...' : 'สมัครสมาชิกทันที'}</button>)}
-                        </div>
-                    </div>
-                </div>
-            );
-        }
+                    // Floor Grid
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(188, 19, 254, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    for(let i=0; i<10; i++) {
+                        let x = ((frames * speed) % 50) - i*50 + 600; 
+                        ctx.moveTo(0, 250 + i*5); ctx.lineTo(600, 250 + i*5); // Horizontal
+                    }
+                    ctx.stroke();
+                    ctx.fillStyle = '#111'; ctx.fillRect(0, 250, 600, 50); // Solid floor
+                    ctx.strokeStyle = '#bc13fe'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0,250); ctx.lineTo(600,250); ctx.stroke();
+                    ctx.restore();
 
-        // --- SUB APPS ---
-        function InventoryModal({ userData, userProfile, db, onClose }) {
-            const equipItem = async (type, id) => { await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ [`equipped.${type}`]: id }); };
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
-                    <div className="glass-panel w-full max-w-lg overflow-hidden flex flex-col border border-crypto-primary/30">
-                        <div className="p-4 border-b border-white/10 flex justify-between bg-black/40"><h2 className="text-xl font-tech font-bold text-crypto-accent">INVENTORY</h2><button onClick={onClose} className="text-red-500">[X]</button></div>
-                        <div className="p-4 grid grid-cols-2 gap-3 max-h-[70vh] overflow-y-auto">{SHOP_ITEMS.filter(i => userData.inventory.includes(i.id)).map(item => (<div key={item.id} className="p-3 bg-white/5 rounded border border-white/10 flex flex-col items-center"><div className="text-xs text-slate-300 mb-2">{item.name}</div><button onClick={() => equipItem(item.type, item.id)} className="px-3 py-1 bg-crypto-primary/20 text-crypto-primary border border-crypto-primary/50 rounded text-[10px]">{(userData.equipped[item.type] === item.id) ? 'EQUIPPED' : 'EQUIP'}</button></div>))}</div>
-                    </div>
-                </div>
-            );
-        }
-        function ShopModal({ userData, userProfile, db, currentAppId, onClose, updateCredits }) {
-            const [items, setItems] = useState(SHOP_ITEMS);
-            const buyItem = async (item) => {
-                if (userData.credits < item.price) return alert('เงินไม่พอ!');
-                if (confirm(`ยืนยันซื้อ ${item.name}?`)) {
-                    await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ credits: firebase.firestore.FieldValue.increment(-item.price), inventory: firebase.firestore.FieldValue.arrayUnion(item.id) });
-                    alert(`ซื้อ ${item.name} สำเร็จ!`);
-                }
-            };
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
-                    <div className="glass-panel w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-white/10 shadow-2xl">
-                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5"><div><h2 className="text-xl font-tech font-bold text-white flex items-center gap-3"><Icons.Shopping className="w-5 h-5"/> ร้านค้าไอเทม</h2></div><div className="text-right"><div className="text-xl font-mono font-bold text-white">{userData.credits.toLocaleString()} เหรียญ</div><button onClick={onClose} className="text-[10px] text-white/50 hover:text-white uppercase tracking-widest mt-1 bg-white/5 px-3 py-1 rounded-full hover:bg-white/10 transition-all">ปิดหน้าต่าง</button></div></div>
-                        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-4">{items.map(item => { const isOwned = (userData.inventory || []).includes(item.id); return (<div key={item.id} className="bg-white/5 p-5 rounded-3xl border border-white/5 hover:border-crypto-accent/50 flex items-center justify-between group transition-all relative overflow-hidden"><div className="flex items-center gap-4 relative z-10">{item.type === 'frame' ? (<div className={`w-14 h-14 flex items-center justify-center bg-black/40 rounded-2xl ${item.css}`}><span className="text-[9px] text-slate-500 font-mono">รูป</span></div>) : (<div className={`text-base ${item.css}`}>ตัวอย่าง</div>)}<div><div className="font-bold text-base text-slate-200 group-hover:text-crypto-accent transition-colors font-tech uppercase tracking-wide">{item.name}</div><div className="text-[11px] text-slate-400 font-mono mt-1">{item.price > 0 ? `${item.price} เหรียญ` : 'ฟรี'}</div></div></div><div className="relative z-10">{isOwned ? (<span className="text-xs text-green-400 font-mono">มีแล้ว</span>) : (<button onClick={() => buyItem(item)} className="px-5 py-2 bg-crypto-primary/20 border border-crypto-primary/30 text-white hover:bg-crypto-primary hover:shadow-glow rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all">ซื้อ</button>)}</div></div>); })}</div>
-                    </div>
-                </div>
-            );
-        }
-        function Leaderboard({ users }) {
-            const sortedUsers = [...users].sort((a,b) => (b.credits || 0) - (a.credits || 0)).slice(0, 10);
-            return (
-                <div className="glass-panel p-4 h-full flex flex-col">
-                    <h3 className="font-tech text-gold text-lg mb-4 flex items-center gap-2"><Icons.Trophy className="text-yellow-500 w-5 h-5" /> RICHEST LIST</h3>
-                    <div className="flex-1 overflow-y-auto space-y-2 custom-scroll pr-1">
-                        {sortedUsers.map((u, i) => (<div key={u.id} className="flex items-center justify-between p-2 bg-black/40 rounded border border-white/5"><div className="flex items-center gap-3"><div className={`w-6 h-6 flex items-center justify-center font-bold text-xs rounded ${i===0?'bg-yellow-500 text-black':i===1?'bg-gray-400 text-black':i===2?'bg-orange-700 text-white':'bg-slate-800 text-slate-500'}`}>{i+1}</div><span className="text-sm font-mono text-slate-300">{u.username}</span></div><span className="text-xs text-crypto-accent font-bold">{u.credits?.toLocaleString()}</span></div>))}
-                    </div>
-                </div>
-            );
-        }
-        function ChatRoom({ userProfile, db }) {
-            const [msg, setMsg] = useState(''); const [chats, setChats] = useState([]); const dummyRef = useRef();
-            useEffect(() => { const unsub = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_chat').onSnapshot(s => { const allChats = s.docs.map(d => d.data()); allChats.sort((a,b) => (a.timestamp?.seconds||0) - (b.timestamp?.seconds||0)); setChats(allChats.slice(-20)); setTimeout(() => dummyRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); }); return () => unsub(); }, []);
-            const send = async (e) => { e.preventDefault(); if(!msg.trim()) return; await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_chat').add({ user: userProfile.name, msg: msg.trim(), timestamp: firebase.firestore.FieldValue.serverTimestamp() }); setMsg(''); };
-            return (
-                <div className="glass-panel p-4 h-full flex flex-col">
-                    <h3 className="font-tech text-crypto-primary text-lg mb-2 flex items-center gap-2"><Icons.Chat className="text-blue-400 w-5 h-5" /> LIVE CHAT</h3>
-                    <div className="flex-1 overflow-y-auto space-y-2 mb-2 custom-scroll bg-black/20 p-2 rounded-lg h-32">
-                        {chats.map((c, i) => (<div key={i} className="text-xs break-words"><span className="text-crypto-accent font-bold">{c.user}:</span> <span className="text-slate-300">{c.msg}</span></div>))}
-                        <div ref={dummyRef}></div>
-                    </div>
-                    <form onSubmit={send} className="flex gap-2"><input value={msg} onChange={e=>setMsg(e.target.value)} className="flex-1 bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:border-crypto-primary outline-none" placeholder="พิมพ์ข้อความ..." /><button type="submit" className="bg-crypto-primary text-white p-2 rounded hover:bg-indigo-600"><Icons.Send className="w-4 h-4" /></button></form>
-                </div>
-            );
-        }
-        function CyberRunner({ userData, updateCredits, onClose }) {
-            const canvasRef = useRef(null); const [score, setScore] = useState(0); const [gameState, setGameState] = useState('start'); 
-            useEffect(() => { if (gameState !== 'playing') return; const canvas = canvasRef.current; const ctx = canvas.getContext('2d'); let frames = 0, reqId; const player = { x: 40, y: 220, w: 30, h: 20, dy: 0, jump: -12, ground: 220, grounded: true }; let obstacles = []; let speed = 4;
-                const loop = () => { frames++; ctx.clearRect(0, 0, 600, 300); ctx.strokeStyle = '#00f3ff'; ctx.beginPath(); ctx.moveTo(0, 240); ctx.lineTo(600, 240); ctx.stroke();
-                    player.dy += 0.6; player.y += player.dy; if (player.y >= player.ground) { player.y = player.ground; player.dy = 0; player.grounded = true; }
-                    ctx.fillStyle = '#00f3ff'; ctx.fillRect(player.x, player.y, player.w, player.h);
-                    if (frames % Math.floor(1100/speed) === 0) { obstacles.push({ x: 600, y: 220, w: 20, h: 20 }); speed += 0.05; }
-                    for(let i=0; i<obstacles.length; i++) { let obs = obstacles[i]; obs.x -= speed; ctx.fillStyle = '#ef4444'; ctx.fillRect(obs.x, obs.y, obs.w, obs.h); if (player.x < obs.x + obs.w && player.x + player.w > obs.x && player.y < obs.y + obs.h && player.y + player.h > obs.y) { setGameState('gameover'); cancelAnimationFrame(reqId); return; } if (obs.x + obs.w < 0) { obstacles.shift(); i--; setScore(s => s + 10); } }
-                    ctx.fillStyle = '#fff'; ctx.font = '20px "Chakra Petch"'; ctx.fillText(`SCORE: ${score}`, 10, 30); reqId = requestAnimationFrame(loop);
+                    // --- UPDATE PLAYER ---
+                    if (!player.grounded) {
+                        player.dy += 0.5; // Gravity
+                        player.y += player.dy;
+                        if (player.y >= player.baseY) {
+                            player.y = player.baseY; player.dy = 0; player.grounded = true;
+                        }
+                    }
+                    
+                    // Draw Cute Bot
+                    const botColor = (userData.equipped?.char === 'char_cat') ? '#ff79c6' : '#00f3ff';
+                    drawBot(ctx, player.x, player.y, botColor);
+
+                    // --- OBSTACLES ---
+                    if (frames % 100 === 0) {
+                        obstacles.push({ x: 600, y: 225, w: 20, h: 25, type: 'spike' });
+                        speed += 0.05;
+                    }
+                    for (let i=0; i<obstacles.length; i++) {
+                        let o = obstacles[i];
+                        o.x -= speed;
+                        // Draw Spike
+                        ctx.fillStyle = '#ff5555';
+                        ctx.beginPath(); ctx.moveTo(o.x, o.y + o.h); ctx.lineTo(o.x + o.w/2, o.y); ctx.lineTo(o.x + o.w, o.y + o.h); ctx.fill();
+                        
+                        // Collision
+                        if (player.x < o.x + o.w - 5 && player.x + player.w > o.x + 5 && player.y < o.y + o.h && player.y + player.h > o.y) {
+                            setGameState('over'); setScore(localScore); playSfx('win'); // fail sound actually
+                            // Save score logic here
+                            if(localScore > (userData.highscores?.runner || 0)) {
+                                db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ 'highscores.runner': localScore });
+                            }
+                            cancelAnimationFrame(frameId); return;
+                        }
+                        if (o.x + o.w < 0) { obstacles.splice(i,1); i--; localScore+=10; setScore(localScore); }
+                    }
+
+                    // --- COINS ---
+                    if (frames % 150 === 0) {
+                        coins.push({ x: 600, y: 150 + Math.random()*50, collected: false });
+                    }
+                    for (let i=0; i<coins.length; i++) {
+                        let c = coins[i];
+                        if(c.collected) continue;
+                        c.x -= speed;
+                        // Draw Coin
+                        ctx.fillStyle = '#f1fa8c'; ctx.beginPath(); ctx.arc(c.x, c.y, 8, 0, Math.PI*2); ctx.fill();
+                        ctx.fillStyle = 'orange'; ctx.font='10px monospace'; ctx.fillText('$', c.x-3, c.y+3);
+
+                        // Collect
+                        let dx = player.x + 15 - c.x; let dy = player.y + 15 - c.y;
+                        if (Math.sqrt(dx*dx + dy*dy) < 25) {
+                            c.collected = true; localScore += 50; setScore(localScore); playSfx('coin');
+                        }
+                        if (c.x < 0) { coins.splice(i,1); i--; }
+                    }
+
+                    // Score UI
+                    ctx.fillStyle = 'white'; ctx.font = '20px Rajdhani'; ctx.fillText(`SCORE: ${localScore}`, 20, 40);
                 };
-                reqId = requestAnimationFrame(loop); const jump = () => { if (player.grounded) { player.dy = player.jump; player.grounded = false; } }; window.addEventListener('keydown', jump); canvas.addEventListener('mousedown', jump); return () => { window.removeEventListener('keydown', jump); canvas.removeEventListener('mousedown', jump); cancelAnimationFrame(reqId); };
+                loop();
+
+                const handleInput = () => { if (player.grounded) { player.dy = player.jumpPower; player.grounded = false; playSfx('jump'); } };
+                window.addEventListener('keydown', handleInput);
+                canvas.addEventListener('touchstart', handleInput);
+                return () => { 
+                    window.removeEventListener('keydown', handleInput); 
+                    canvas.removeEventListener('touchstart', handleInput); 
+                    cancelAnimationFrame(frameId); 
+                };
             }, [gameState]);
-            return (<div className="glass-panel p-6 flex flex-col items-center justify-center h-full animate-in zoom-in"><div className="flex justify-between w-full mb-2"><h2 className="text-xl font-tech text-neon-blue flex items-center gap-2"><Icons.Run className="w-6 h-6"/> CYBER RUN 2.0</h2><button onClick={onClose} className="text-slate-400 text-xs">ออก</button></div><div className="relative"><canvas ref={canvasRef} width="600" height="300" className="bg-black/60 rounded-lg border border-neon-blue/30 w-full max-w-[600px] shadow-[0_0_20px_rgba(0,243,255,0.2)] touch-none"></canvas>{gameState === 'start' && (<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg"><button onClick={()=>{setScore(0); setGameState('playing')}} className="bg-neon-blue text-black font-bold py-2 px-8 rounded-full hover:scale-110 transition-transform">START</button></div>)}{gameState === 'gameover' && (<div className="absolute inset-0 flex flex-col items-center justify-center bg-red-900/80 backdrop-blur-sm rounded-lg"><h1 className="text-4xl font-bold text-white mb-2">CRASHED!</h1><p className="text-yellow-300 text-xl font-mono mb-4">SCORE: {score}</p><button onClick={async () => { await updateCredits(Math.floor(score/10)); onClose(); }} className="bg-white text-black font-bold py-2 px-6 rounded-full hover:bg-slate-200">รับ {Math.floor(score/10)} เหรียญ</button></div>)}</div></div>);
-        }
-        function NamTaoPuPla({ userData, updateCredits, onClose }) {
-            const sym = ["🎃", "🦀", "🐟", "🐓", "🍤", "🐯"]; const [bets, setBets] = useState({}); const [res, setRes] = useState([0,0,0]); const [state, setState] = useState('bet'); 
-            const addBet = (i) => { if(state !== 'bet') return; if(userData.credits < 10) return alert("เงินไม่พอ"); updateCredits(-10); setBets(prev => ({...prev, [i]: (prev[i]||0)+10})); }
-            const roll = () => { if(Object.keys(bets).length === 0) return alert("วางเดิมพันก่อน"); setState('rolling'); let c = 0; const iv = setInterval(() => { setRes([Math.floor(Math.random()*6), Math.floor(Math.random()*6), Math.floor(Math.random()*6)]); c++; if(c > 10) { clearInterval(iv); const final = [Math.floor(Math.random()*6), Math.floor(Math.random()*6), Math.floor(Math.random()*6)]; setRes(final); let win = 0; let hits = {}; final.forEach(x => hits[x] = (hits[x]||0)+1); Object.keys(bets).forEach(k => { if(hits[k]) win += bets[k] + (bets[k] * hits[k]); }); if(win > 0) { updateCredits(win); alert(`ยินดีด้วย! ได้ ${win} เหรียญ`); } setState('bet'); setBets({}); } }, 100); }
-            return (<div className="glass-panel p-6 h-full flex flex-col items-center justify-center animate-in zoom-in"><div className="flex justify-between w-full mb-4"><h2 className="text-lg font-bold text-red-400">Nam Tao Pu Pla</h2><button onClick={onClose} className="text-xs text-slate-400">ออก</button></div><div className="flex gap-4 mb-6 bg-black/40 p-4 rounded-xl border border-red-500/20">{res.map((r,i) => <div key={i} className="dice-face text-4xl">{sym[r]}</div>)}</div><div className="grid grid-cols-3 gap-3 w-full mb-6">{sym.map((s, i) => (<div key={i} onClick={()=>addBet(i)} className="bg-white/5 p-2 rounded border border-white/10 hover:border-red-400 cursor-pointer text-center relative group"><div className="text-3xl mb-1 group-hover:scale-110 transition-transform">{s}</div><div className="text-[10px] text-slate-400">BET 10</div>{bets[i] && <div className="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-bold px-1 rounded-bl">{bets[i]}</div>}</div>))}</div><button onClick={roll} disabled={state!=='bet'} className="w-full py-3 bg-red-600 text-white font-bold rounded-xl disabled:opacity-50">{state==='rolling' ? 'ROLLING...' : 'ROLL DICE'}</button></div>);
-        }
-        function BingoLobby({ userProfile, userData, db, onClose, onJoinRoom }) {
-            const [rooms, setRooms] = useState([]); const [showCreate, setShowCreate] = useState(false); const [newRoomName, setNewRoomName] = useState(''); const [newRoomPass, setNewRoomPass] = useState('');
-            useEffect(() => { const unsub = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms').onSnapshot(s => { const allRooms = s.docs.map(d => ({id:d.id, ...d.data()})); allRooms.sort((a,b) => (b.timestamp?.seconds||0) - (a.timestamp?.seconds||0)); setRooms(allRooms); }); return () => unsub(); }, []);
-            const createRoom = async () => { if(!newRoomName) return alert("ใส่ชื่อห้อง"); const hasTicket = (userData.inventory||[]).includes('room_ticket'); if(!userData.isVip) { if(!hasTicket) return alert("ต้องมีตั๋วสร้างห้อง"); if(!confirm("ใช้ตั๋วสร้างห้อง 1 ใบ?")) return; await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ inventory: firebase.firestore.FieldValue.arrayRemove('room_ticket') }); } await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms').add({ name: newRoomName, password: newRoomPass, hostId: userProfile.uid, hostName: userData.username, currentNumber: null, history: [], timestamp: firebase.firestore.FieldValue.serverTimestamp() }); setShowCreate(false); };
-            const joinRoom = (room) => { if(room.password) { const p = prompt("รหัสผ่าน:"); if(p !== room.password) return alert("รหัสผิด"); } onJoinRoom(room.id); };
-            return (<div className="glass-panel p-6 h-full flex flex-col animate-in fade-in"><div className="flex justify-between items-center mb-4"><button onClick={onClose} className="text-slate-400 hover:text-white text-xs flex items-center gap-1">← LOBBY</button><h2 className="text-lg font-bold text-neon-blue">BINGO ROOMS</h2><button onClick={()=>setShowCreate(true)} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs">+ สร้างห้อง</button></div>{showCreate && (<div className="mb-4 p-4 bg-white/5 rounded-xl border border-white/10"><input value={newRoomName} onChange={e=>setNewRoomName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-sm text-white mb-2" placeholder="ชื่อห้อง" /><input value={newRoomPass} onChange={e=>setNewRoomPass(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-sm text-white mb-2" placeholder="รหัสผ่าน (ถ้ามี)" /><button onClick={createRoom} className="w-full bg-green-600 text-white py-1 rounded text-xs">ยืนยัน</button></div>)}<div className="flex-1 overflow-y-auto space-y-2 custom-scroll">{rooms.map(room => (<div key={room.id} onClick={()=>joinRoom(room)} className="p-3 bg-white/5 border border-white/10 rounded-xl hover:border-neon-blue cursor-pointer flex justify-between items-center"><div><div className="font-bold text-slate-200">{room.name}</div><div className="text-[10px] text-slate-400">Host: {room.hostName}</div></div><div className="flex items-center gap-2">{room.password && <Icons.Lock className="w-3 h-3 text-red-400"/>}<span className="text-[10px] bg-white/10 px-2 py-1 rounded text-white">JOIN</span></div></div>))}</div></div>);
-        }
-        function UserProfile({ userData, userProfile, db, currentAppId, onClose }) {
-            const [editName, setEditName] = useState(false); const [newName, setNewName] = useState(userData.username); const [shopItems, setShopItems] = useState(SHOP_ITEMS);
-            const saveName = async () => { if(!newName.trim()) return; await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ username: newName }); setEditName(false); };
-            const equipItem = async (type, id) => { await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ [`equipped.${type}`]: id }); };
-            const getFrameStyle = (id) => SHOP_ITEMS.find(i => i.id === id)?.css || '';
-            const getTitleStyle = (id) => SHOP_ITEMS.find(i => i.id === id)?.css || '';
-            return (<div className="glass-panel p-6 h-full flex flex-col animate-in fade-in zoom-in"><button onClick={onClose} className="self-start mb-4 text-xs text-slate-400 hover:text-white flex items-center gap-1">← กลับหน้าหลัก</button><div className="flex flex-col items-center mb-6"><div className={`w-24 h-24 rounded-2xl flex items-center justify-center text-4xl font-tech font-bold text-white shadow-lg bg-black/40 mb-4 ${getFrameStyle(userData.equipped.frame)}`}>{userData.username.charAt(0).toUpperCase()}</div>{editName ? (<div className="flex gap-2"><input value={newName} onChange={e=>setNewName(e.target.value)} className="bg-black/50 border border-white/20 rounded px-2 py-1 text-white text-sm" /><button onClick={saveName} className="bg-green-600 px-3 rounded text-xs text-white">บันทึก</button></div>) : (<h2 className={`font-bold text-2xl font-tech tracking-wide flex items-center gap-2 ${getTitleStyle(userData.equipped.title)}`}>{userData.username} <button onClick={()=>setEditName(true)}><Icons.Edit className="w-4 h-4 text-slate-500 hover:text-white"/></button></h2>)}<div className="text-crypto-accent font-mono mt-1 text-sm">{userData.credits.toLocaleString()} เหรียญ</div></div><div className="border-t border-white/10 pt-4"><h3 className="text-sm font-bold text-white mb-3">คลังของสะสม</h3><div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto custom-scroll">{SHOP_ITEMS.filter(i => (userData.inventory||[]).includes(i.id) && i.type !== 'item').map(item => (<div key={item.id} className="p-2 bg-white/5 rounded border border-white/10 flex flex-col items-center"><div className="text-[10px] text-slate-300 mb-1">{item.name}</div><button onClick={() => equipItem(item.type, item.id)} className={`px-2 py-1 rounded text-[10px] w-full ${userData.equipped[item.type] === item.id ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300'}`}>{(userData.equipped[item.type] === item.id) ? 'ใช้อยู่' : 'สวมใส่'}</button></div>))}</div></div></div>);
-        }
-        function BingoRoom({ userProfile, userData, db, currentAppId, updateCredits, roomId, onLeave }) {
-            const [gameState, setGameState] = useState(null); const [playerCard, setPlayerCard] = useState([]); const [hasClaimed, setHasClaimed] = useState(false); const [isAutoPlaying, setIsAutoPlaying] = useState(false); const autoPlayRef = useRef(null); const roomRef = useMemo(() => db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('bingo_rooms').doc(roomId), [roomId]);
-            useEffect(() => { const unsub = roomRef.onSnapshot(doc => { if (doc.exists) { const data = doc.data(); if(!data.history) data.history = []; setGameState(data); } }); return () => unsub(); }, [roomId]);
-            const generateNumber = async () => { if (userProfile.uid !== gameState.hostId) return; const available = Array.from({length: 75}, (_, i) => i + 1).filter(n => !gameState.history.includes(n)); if (available.length === 0) { setIsAutoPlaying(false); return; } const newNum = available[Math.floor(Math.random() * available.length)]; await roomRef.update({ currentNumber: newNum, history: [newNum, ...gameState.history] }); };
-            const toggleAutoPlay = () => { if (isAutoPlaying) setIsAutoPlaying(false); else { setIsAutoPlaying(true); generateNumber(); } };
-            useEffect(() => { if (isAutoPlaying) autoPlayRef.current = setInterval(generateNumber, 3500); else clearInterval(autoPlayRef.current); return () => clearInterval(autoPlayRef.current); }, [isAutoPlaying]);
-            const buyCard = async () => { if (userData.credits < 50) return alert("เงินไม่พอ"); await updateCredits(-50); const card = []; const cols = [{s:1,e:15}, {s:16,e:30}, {s:31,e:45}, {s:46,e:60}, {s:61,e:75}]; for(let c=0; c<5; c++) { const colNums = []; while(colNums.length < 5) { const num = Math.floor(Math.random() * (cols[c].e - cols[c].s + 1)) + cols[c].s; if(!colNums.includes(num)) colNums.push(num); } card.push(colNums); } card[2][2] = 'FREE'; setPlayerCard(card); setHasClaimed(false); };
-            const checkBingo = useMemo(() => { if (playerCard.length === 0 || !gameState) return false; const isMarked = (r, c) => { const v = playerCard[c][r]; return v === 'FREE' || gameState.history.includes(v); }; for(let i=0; i<5; i++) { if([0,1,2,3,4].every(x => isMarked(i, x))) return true; if([0,1,2,3,4].every(x => isMarked(x, i))) return true; } if([0,1,2,3,4].every(i => isMarked(i, i))) return true; if([0,1,2,3,4].every(i => isMarked(i, 4-i))) return true; return false; }, [playerCard, gameState]);
-            useEffect(() => { if (checkBingo && !hasClaimed) { confetti({ particleCount: 150 }); updateCredits(200); setHasClaimed(true); } }, [checkBingo]);
-            if(!gameState) return <div className="text-center mt-10 text-white">Loading Room...</div>;
+
             return (
-                <div className="space-y-6 animate-in zoom-in"><div className="flex justify-between items-center text-sm"><button onClick={onLeave} className="text-slate-400 hover:text-white">← ออกจากห้อง</button><span className="text-crypto-accent font-bold">ROOM: {gameState.name}</span></div><div className="glass-panel p-8 text-center relative overflow-hidden"><div className="absolute top-0 right-0 p-2 opacity-20"><Icons.Bingo className="w-16 h-16"/></div><div className="text-7xl font-tech font-bold text-white drop-shadow-[0_0_10px_rgba(0,243,255,0.8)]">{gameState.currentNumber || '--'}</div><div className="text-xs text-slate-500 font-mono tracking-widest mt-2">LUCKY NUMBER</div></div>{userProfile.uid === gameState.hostId ? (<div className="glass-panel p-6 border-crypto-primary/30"><div className="text-xs text-crypto-primary mb-3 tracking-widest">HOST CONTROLS</div><div className="grid grid-cols-2 gap-4"><button onClick={generateNumber} className="bg-white text-black font-bold py-3 rounded hover:scale-105 transition-transform">สุ่มตัวเลข</button><button onClick={toggleAutoPlay} className={`border border-white/20 py-3 rounded transition-all ${isAutoPlaying ? 'bg-crypto-accent text-black animate-pulse' : 'text-slate-300'}`}>{isAutoPlaying ? 'AUTO ON' : 'AUTO PLAY'}</button><button onClick={() => {if(confirm('Reset?')) roomRef.update({currentNumber:null, history:[]})}} className="col-span-2 py-2 text-xs text-red-500 border border-red-500/30 rounded hover:bg-red-500/10">เริ่มกระดานใหม่</button></div></div>) : (<div className="glass-panel p-6 text-center">{playerCard.length === 0 ? (<button onClick={buyCard} className="bg-crypto-accent text-black font-bold py-4 px-10 rounded-full hover:shadow-[0_0_20px_rgba(0,243,255,0.4)] transition-all">ซื้อตั๋ว (50)</button>) : (<div>{checkBingo && <div className="text-2xl font-bold text-yellow-400 mb-4 animate-bounce">BINGO! +200</div>}<div className="grid grid-cols-5 gap-2 aspect-square mb-4">{playerCard.map((col, c) => (<div key={c} className="flex flex-col gap-2">{col.map((val, r) => { const marked = val === 'FREE' || gameState.history.includes(val); return <div key={r} className={`flex-1 flex items-center justify-center font-bold text-sm rounded ${marked ? 'bg-crypto-primary text-white shadow-glow' : 'bg-white/5 text-slate-500'}`}>{val === 'FREE' ? '★' : val}</div> })}</div>))}</div><button onClick={buyCard} className="text-xs text-slate-400 hover:text-white border-b border-slate-600">ซื้อใบใหม่</button></div>)}</div>)}<div className="glass-panel p-4"><div className="text-[10px] text-slate-500 mb-2 uppercase">History</div><div className="flex flex-wrap gap-1 h-12 overflow-hidden">{(gameState.history || []).map((n, i) => <span key={i} className="text-xs text-slate-300 bg-white/5 px-1 rounded">{n}</span>)}</div></div></div>
+                <div className="glass-panel p-6 h-full flex flex-col items-center justify-center animate-zoom-in">
+                    <div className="flex justify-between w-full mb-2">
+                        <h2 className="text-xl font-tech text-neon-blue flex items-center gap-2"><Icons.Run className="w-6 h-6"/> CYBER RUN 3.0</h2>
+                        <button onClick={onClose} className="text-slate-400 hover:text-white">EXIT</button>
+                    </div>
+                    
+                    <div className="relative border-2 border-neon-blue/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(0,243,255,0.1)]">
+                        {gameState === 'menu' && (
+                            <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10">
+                                <div className="text-4xl mb-4 animate-bounce">🤖</div>
+                                <h3 className="text-2xl font-bold text-white mb-6">READY TO RUN?</h3>
+                                <button onClick={startGame} className="btn-cyber px-8 py-2 rounded text-lg">START MISSION</button>
+                            </div>
+                        )}
+                        {gameState === 'over' && (
+                            <div className="absolute inset-0 bg-red-900/90 flex flex-col items-center justify-center z-10">
+                                <h3 className="text-3xl font-bold text-white mb-2">CRASHED!</h3>
+                                <div className="text-4xl font-mono text-yellow-400 mb-6">{score}</div>
+                                <button onClick={async () => { await updateCredits(Math.floor(score/10)); onClose(); }} className="px-6 py-2 bg-white text-black font-bold rounded hover:bg-slate-200">CLAIM REWARD</button>
+                            </div>
+                        )}
+                        <canvas ref={canvasRef} width="600" height="300" className="bg-[#050510] block w-full max-w-[600px]"></canvas>
+                    </div>
+                </div>
             );
+        }
+
+        // 3. BINGO ROOM & LOBBY (Fix Ticket Logic)
+        function BingoLobby({ userProfile, userData, db, onClose, onJoinRoom }) {
+            const [rooms, setRooms] = useState([]);
+            const [creating, setCreating] = useState(false);
+            const [roomName, setRoomName] = useState('');
+
+            useEffect(() => {
+                return db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms')
+                    .orderBy('timestamp', 'desc').limit(20).onSnapshot(s => {
+                        setRooms(s.docs.map(d => ({id:d.id, ...d.data()})));
+                    });
+            }, []);
+
+            const handleCreate = async () => {
+                if (!roomName) return alert('ใส่ชื่อห้องด้วยครับ');
+                playSfx('click');
+                const vip = getVipStatus(userData);
+                const isFree = vip.level === 'GOLD' || vip.level === 'PLATINUM';
+                const hasTicket = (userData.inventory || []).includes('ticket_room');
+
+                if (!isFree && !hasTicket) return alert('ไม่มีตั๋วสร้างห้อง! ซื้อได้ที่ร้านค้าครับ');
+
+                setCreating(true);
+                try {
+                    // Deduct ticket if not free
+                    if (!isFree) {
+                        await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({
+                            inventory: firebase.firestore.FieldValue.arrayRemove('ticket_room')
+                        });
+                    }
+                    // Create Room
+                    await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms').add({
+                        name: roomName, hostId: userProfile.uid, hostName: userData.username, 
+                        currentNumber: null, history: [], timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    setCreating(false);
+                    alert('สร้างห้องสำเร็จ!');
+                } catch(e) { console.error(e); setCreating(false); }
+            };
+
+            return (
+                <div className="glass-panel p-6 h-full flex flex-col animate-fade-in">
+                    <div className="flex justify-between items-center mb-6">
+                        <button onClick={onClose} className="text-slate-400 hover:text-white flex items-center gap-2"><Icons.Home className="w-4 h-4"/> LOBBY</button>
+                        <h2 className="text-2xl font-tech font-bold text-neon-blue">NEON BINGO</h2>
+                    </div>
+
+                    <div className="bg-white/5 p-4 rounded-xl mb-4 border border-white/10 flex gap-2">
+                        <input value={roomName} onChange={e=>setRoomName(e.target.value)} placeholder="ตั้งชื่อห้อง..." className="flex-1 bg-black/50 border border-white/20 rounded px-3 text-white focus:border-neon-blue outline-none" />
+                        <button onClick={handleCreate} disabled={creating} className="bg-neon-blue/20 border border-neon-blue text-neon-blue px-4 rounded hover:bg-neon-blue hover:text-black transition-all text-sm font-bold">
+                            {creating ? 'CREATING...' : '+ สร้างห้อง'}
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scroll space-y-2">
+                        {rooms.map(r => (
+                            <div key={r.id} onClick={()=>onJoinRoom(r.id)} className="p-4 bg-gradient-to-r from-white/5 to-transparent border border-white/5 rounded-xl hover:border-neon-purple cursor-pointer transition-all group">
+                                <div className="flex justify-between">
+                                    <div className="font-bold text-lg text-slate-200 group-hover:text-neon-purple">{r.name}</div>
+                                    <div className="text-xs px-2 py-1 bg-black/30 rounded text-neon-green">OPEN</div>
+                                </div>
+                                <div className="text-xs text-slate-500 mt-1">HOST: {r.hostName}</div>
+                            </div>
+                        ))}
+                        {rooms.length === 0 && <div className="text-center text-slate-600 mt-10">ยังไม่มีห้อง... สร้างเลย!</div>}
+                    </div>
+                </div>
+            );
+        }
+
+        // --- BINGO ROOM (Restored) ---
+        function BingoRoom({ userProfile, userData, db, currentAppId, updateCredits, roomId, onLeave }) {
+            const [gameState, setGameState] = useState(null);
+            const [playerCard, setPlayerCard] = useState([]);
+            const [hasClaimed, setHasClaimed] = useState(false);
+            const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+            const autoPlayRef = useRef(null);
+            
+            const roomRef = useMemo(() => db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('bingo_rooms').doc(roomId), [roomId]);
+
+            useEffect(() => {
+                const unsub = roomRef.onSnapshot(doc => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        if(!data.history) data.history = [];
+                        setGameState(data);
+                    }
+                }, err => console.log(err));
+                return () => unsub();
+            }, [roomId]);
+
+            const generateNumber = async () => {
+                if (userProfile.uid !== gameState.hostId) return;
+                const available = Array.from({length: 75}, (_, i) => i + 1).filter(n => !gameState.history.includes(n));
+                if (available.length === 0) { setIsAutoPlaying(false); return; }
+                const newNum = available[Math.floor(Math.random() * available.length)];
+                await roomRef.update({ currentNumber: newNum, history: [newNum, ...gameState.history] });
+                playSfx('coin');
+            };
+
+            const toggleAutoPlay = () => {
+                if (isAutoPlaying) setIsAutoPlaying(false);
+                else { setIsAutoPlaying(true); generateNumber(); }
+            };
+
+            useEffect(() => {
+                if (isAutoPlaying) autoPlayRef.current = setInterval(generateNumber, 3500);
+                else clearInterval(autoPlayRef.current);
+                return () => clearInterval(autoPlayRef.current);
+            }, [isAutoPlaying]);
+
+            const buyCard = async () => {
+                if (userData.credits < 50) return alert("เงินไม่พอ");
+                await updateCredits(-50);
+                const card = [];
+                const cols = [{s:1,e:15}, {s:16,e:30}, {s:31,e:45}, {s:46,e:60}, {s:61,e:75}];
+                for(let c=0; c<5; c++) {
+                    const colNums = [];
+                    while(colNums.length < 5) {
+                        const num = Math.floor(Math.random() * (cols[c].e - cols[c].s + 1)) + cols[c].s;
+                        if(!colNums.includes(num)) colNums.push(num);
+                    }
+                    card.push(colNums);
+                }
+                card[2][2] = 'FREE';
+                setPlayerCard(card);
+                setHasClaimed(false);
+                playSfx('click');
+            };
+
+            const checkBingo = useMemo(() => {
+                if (playerCard.length === 0 || !gameState) return false;
+                const isMarked = (r, c) => {
+                    const v = playerCard[c][r];
+                    return v === 'FREE' || gameState.history.includes(v);
+                };
+                for(let i=0; i<5; i++) {
+                    if([0,1,2,3,4].every(x => isMarked(i, x))) return true;
+                    if([0,1,2,3,4].every(x => isMarked(x, i))) return true;
+                }
+                if([0,1,2,3,4].every(i => isMarked(i, i))) return true;
+                if([0,1,2,3,4].every(i => isMarked(i, 4-i))) return true;
+                return false;
+            }, [playerCard, gameState]);
+
+            useEffect(() => {
+                if (checkBingo && !hasClaimed) {
+                    confetti({ particleCount: 150 });
+                    updateCredits(200);
+                    setHasClaimed(true);
+                    playSfx('win');
+                }
+            }, [checkBingo]);
+
+            if(!gameState) return <div className="text-center mt-10 text-white">กำลังโหลดห้อง...</div>;
+
+            return (
+                <div className="glass-panel p-6 h-full flex flex-col animate-zoom-in">
+                    <div className="flex justify-between items-center mb-4">
+                        <button onClick={onLeave} className="text-slate-400 hover:text-white text-xs flex items-center gap-1">← ออกจากห้อง</button>
+                        <span className="text-neon-blue font-bold font-tech text-lg">ROOM: {gameState.name}</span>
+                    </div>
+                    
+                    <div className="glass-panel p-8 text-center relative overflow-hidden mb-4 border border-neon-blue/30 shadow-[0_0_30px_rgba(0,243,255,0.1)]">
+                        <div className="absolute top-0 right-0 p-4 opacity-20"><Icons.Ticket className="w-16 h-16"/></div>
+                        <div className="text-8xl font-tech font-bold text-white drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]">{gameState.currentNumber || '--'}</div>
+                        <div className="text-xs text-neon-blue font-mono tracking-[0.3em] mt-2 uppercase">LUCKY NUMBER</div>
+                    </div>
+
+                    {userProfile.uid === gameState.hostId ? (
+                        <div className="glass-panel p-6 border-neon-purple/30 bg-neon-purple/5 mb-4">
+                            <div className="text-xs text-neon-purple mb-3 tracking-widest font-bold">HOST CONTROLS</div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button onClick={generateNumber} className="bg-white text-black font-bold py-3 rounded hover:scale-105 transition-transform">สุ่มตัวเลข</button>
+                                <button onClick={toggleAutoPlay} className={`border border-white/20 py-3 rounded transition-all font-bold ${isAutoPlaying ? 'bg-neon-green text-black animate-pulse' : 'text-slate-300'}`}>{isAutoPlaying ? 'STOP AUTO' : 'AUTO PLAY'}</button>
+                                <button onClick={() => {if(confirm('Reset Game?')) roomRef.update({currentNumber:null, history:[]})}} className="col-span-2 py-2 text-xs text-red-400 border border-red-500/30 rounded hover:bg-red-500/10">RESET BOARD</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="glass-panel p-6 text-center mb-4">
+                            {playerCard.length === 0 ? (
+                                <div className="py-8">
+                                    <button onClick={buyCard} className="btn-cyber px-8 py-4 text-xl rounded-xl shadow-lg">ซื้อตั๋ว (50)</button>
+                                    <p className="text-xs text-slate-500 mt-2">ลุ้นรับรางวัล 200 เหรียญ</p>
+                                </div>
+                            ) : (
+                                <div>
+                                    {checkBingo && <div className="text-4xl font-bold text-yellow-400 mb-4 animate-bounce font-tech">BINGO! +200</div>}
+                                    <div className="grid grid-cols-5 gap-2 aspect-square mb-4 max-w-[300px] mx-auto">
+                                        {playerCard.map((col, c) => (
+                                            <div key={c} className="flex flex-col gap-2">
+                                                {col.map((val, r) => { 
+                                                    const marked = val === 'FREE' || gameState.history.includes(val); 
+                                                    return <div key={r} className={`flex-1 flex items-center justify-center font-bold text-sm rounded transition-all duration-300 ${marked ? 'bg-neon-blue text-black shadow-[0_0_10px_#00f3ff] scale-105' : 'bg-white/5 text-slate-500'}`}>{val === 'FREE' ? '★' : val}</div> 
+                                                })}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button onClick={buyCard} className="text-xs text-slate-400 hover:text-white border-b border-slate-600 pb-1">ซื้อตั๋วใบใหม่</button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="glass-panel p-4">
+                        <div className="text-[10px] text-slate-500 mb-2 uppercase tracking-wider">History</div>
+                        <div className="flex flex-wrap gap-1 h-12 overflow-hidden">
+                            {(gameState.history || []).map((n, i) => <span key={i} className="text-xs text-slate-300 bg-white/5 px-2 py-1 rounded border border-white/5">{n}</span>)}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- RANKING ---
+        function Ranking({ users, onClose }) {
+            const [tab, setTab] = useState('rich');
+            const sorted = useMemo(() => {
+                let d = [...users];
+                if(tab==='rich') d.sort((a,b)=>(b.credits||0)-(a.credits||0));
+                else if(tab==='run') d.sort((a,b)=>(b.highscores?.runner||0)-(a.highscores?.runner||0));
+                else d.sort((a,b)=>(b.highscores?.memory||0)-(a.highscores?.memory||0));
+                return d.slice(0, 50);
+            }, [users, tab]);
+
+            return (
+                <div className="glass-panel p-6 h-full flex flex-col animate-fade-in">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold font-tech flex items-center gap-2"><Icons.Trophy className="text-yellow-400 w-5 h-5"/> LEADERBOARD</h2>
+                        <button onClick={onClose}>✕</button>
+                    </div>
+                    <div className="flex bg-black/30 rounded-lg p-1 mb-4">
+                        {['rich', 'run', 'memory'].map(t => (
+                            <button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs font-bold rounded ${tab===t ? 'bg-white/10 text-white' : 'text-slate-500'}`}>
+                                {t.toUpperCase()}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex-1 overflow-y-auto custom-scroll pr-2">
+                        {sorted.map((u, i) => (
+                            <div key={u.id} className="flex items-center justify-between p-3 mb-2 bg-white/5 rounded-lg border border-white/5">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-6 h-6 flex items-center justify-center font-bold text-xs rounded-full ${i<3 ? 'bg-yellow-500 text-black':'bg-slate-700'}`}>{i+1}</div>
+                                    <div className="text-sm font-mono">
+                                        {u.username}
+                                        {u.vipLevel && u.vipLevel !== 'NONE' && <span className="ml-1 text-[10px] text-yellow-400">VIP</span>}
+                                    </div>
+                                </div>
+                                <div className="font-bold text-neon-blue">
+                                    {tab==='rich' ? u.credits?.toLocaleString() : (tab==='run' ? u.highscores?.runner : u.highscores?.memory) || 0}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // --- NAM TAO PU PLA (Updated) ---
+        function NamTaoPuPla({ userData, updateCredits, onClose }) { 
+            const sym = ["🎃", "🦀", "🐟", "🐓", "🍤", "🐯"]; 
+            const [bets, setBets] = useState({}); 
+            const [res, setRes] = useState([0,0,0]); 
+            const [state, setState] = useState('bet'); 
+            
+            const addBet = (i) => { 
+                if(state !== 'bet') return; 
+                playSfx('click');
+                if(userData.credits < 10) return alert("เงินไม่พอ"); 
+                updateCredits(-10); 
+                setBets(prev => ({...prev, [i]: (prev[i]||0)+10})); 
+            }; 
+            
+            const roll = () => { 
+                if(Object.keys(bets).length === 0) return alert("วางเดิมพันก่อน"); 
+                playSfx('click');
+                setState('rolling'); 
+                let c = 0; 
+                const iv = setInterval(() => { 
+                    setRes([Math.floor(Math.random()*6), Math.floor(Math.random()*6), Math.floor(Math.random()*6)]); 
+                    c++; 
+                    if(c > 10) { 
+                        clearInterval(iv); 
+                        const final = [Math.floor(Math.random()*6), Math.floor(Math.random()*6), Math.floor(Math.random()*6)]; 
+                        setRes(final); 
+                        let win = 0; 
+                        let hits = {}; 
+                        final.forEach(x => hits[x] = (hits[x]||0)+1); 
+                        Object.keys(bets).forEach(k => { if(hits[k]) win += bets[k] + (bets[k] * hits[k]); }); 
+                        if(win > 0) { 
+                            updateCredits(win); 
+                            playSfx('win');
+                            alert(`ยินดีด้วย! ได้ ${win} เหรียญ`); 
+                        } 
+                        setState('bet'); 
+                        setBets({}); 
+                    } 
+                }, 100); 
+            }; 
+            return (<div className="glass-panel p-6 h-full flex flex-col items-center justify-center animate-zoom-in"><div className="flex justify-between w-full mb-4"><h2 className="text-lg font-bold text-red-400">น้ำเต้าปูปลา</h2><button onClick={onClose} className="text-xs text-slate-400">ออก</button></div><div className="flex gap-4 mb-6 bg-black/40 p-4 rounded-xl border border-red-500/20">{res.map((r,i) => <div key={i} className="dice-face text-4xl">{sym[r]}</div>)}</div><div className="grid grid-cols-3 gap-3 w-full mb-6">{sym.map((s, i) => (<div key={i} onClick={()=>addBet(i)} className="bg-white/5 p-2 rounded border border-white/10 hover:border-red-400 cursor-pointer text-center relative group"><div className="text-3xl mb-1 group-hover:scale-110 transition-transform">{s}</div><div className="text-[10px] text-slate-400">เดิมพัน 10</div>{bets[i] && <div className="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-bold px-1 rounded-bl">{bets[i]}</div>}</div>))}</div><button onClick={roll} disabled={state!=='bet'} className="w-full py-3 bg-red-600 text-white font-bold rounded-xl disabled:opacity-50">{state==='rolling' ? 'กำลังเขย่า...' : 'เขย่าลูกเต๋า'}</button></div>); 
         }
 
         // --- MAIN APP ---
@@ -451,133 +994,155 @@
             const [userProfile, setUserProfile] = useState(null);
             const [userData, setUserData] = useState(null);
             const [activePlayers, setActivePlayers] = useState([]);
-            const [bgm, setBgm] = useState(false);
-            const [screen, setScreen] = useState('lobby'); 
-            const [showInv, setShowInv] = useState(false);
-            const [showShop, setShowShop] = useState(false);
+            const [screen, setScreen] = useState('lobby'); // lobby, shop, bag, ranking, game...
             const [currentRoomId, setCurrentRoomId] = useState(null);
-            const [pendingRequests, setPendingRequests] = useState([]);
-            const [myRequest, setMyRequest] = useState(null);
+            const [showShop, setShowShop] = useState(false);
+            const [showBag, setShowBag] = useState(false);
+            const [bgm, setBgm] = useState(false);
 
-            const usersRef = useMemo(() => db && APP_ID ? db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users') : null, [db, APP_ID]);
-            const requestsRef = useMemo(() => db && APP_ID ? db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_requests') : null, [db, APP_ID]);
             const audioRef = useRef(new Audio(BGM_URL));
+            useEffect(() => { audioRef.current.loop = true; audioRef.current.volume = 0.3; }, []);
+            const toggleBgm = () => {
+                if(bgm) { audioRef.current.pause(); setBgm(false); }
+                else { audioRef.current.play().catch(()=>{}); setBgm(true); }
+            };
 
+            // Auth Logic
             useEffect(() => {
-                if(bgm) { audioRef.current.loop = true; audioRef.current.play().catch(()=>{}); }
-                else audioRef.current.pause();
-            }, [bgm]);
-
-            useEffect(() => {
-                const init = async () => { if (!auth.currentUser) await auth.signInAnonymously(); };
+                const init = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await auth.signInWithCustomToken(__initial_auth_token);
+                    else await auth.signInAnonymously();
+                    
+                    const uid = localStorage.getItem('sato_uid');
+                    if(uid) {
+                        const d = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(uid).get();
+                        if(d.exists) setUserProfile({ uid, ...d.data() });
+                        else await createGuest();
+                    } else await createGuest();
+                };
                 init();
             }, []);
 
-            // Data Sync
+            const createGuest = async () => {
+                const uid = 'user_'+Math.random().toString(36).substr(2,9);
+                const data = { 
+                    username: 'Guest_'+uid.substr(0,4), role: 'player', credits: INITIAL_CREDITS, 
+                    inventory: [], equipped: {}, highscores: { runner: 0, memory: 0 },
+                    vipLevel: 'NONE', vipExpires: null,
+                    joinedAt: firebase.firestore.FieldValue.serverTimestamp() 
+                };
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(uid).set(data);
+                localStorage.setItem('sato_uid', uid);
+                setUserProfile({ uid, ...data });
+            };
+
+            // Sync Data
             useEffect(() => {
-                if(!userProfile || !usersRef) return;
-                const unsubMe = usersRef.doc(userProfile.uid).onSnapshot(d => d.exists && setUserData(d.data()));
-                // Client-side sorting for users
-                const unsubAll = usersRef.onSnapshot(s => {
-                    const users = s.docs.map(d => ({id:d.id, ...d.data()}));
-                    users.sort((a,b) => (b.joinedAt?.seconds || 0) - (a.joinedAt?.seconds || 0));
-                    setActivePlayers(users.slice(0, 50));
+                if(!userProfile) return;
+                const unsub1 = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).onSnapshot(s => {
+                    if(s.exists) setUserData(s.data());
                 });
-                
-                let unsubRequests;
-                if (userProfile.role === 'host') {
-                    unsubRequests = requestsRef.onSnapshot(s => setPendingRequests(s.docs.map(d => ({id:d.id, ...d.data()}))));
-                } else {
-                    unsubRequests = requestsRef.onSnapshot(s => {
-                        const req = s.docs.map(d => ({id:d.id, ...d.data()})).find(d => d.userId === userProfile.uid);
-                        setMyRequest(req || null);
-                    });
-                }
-                return () => { unsubMe(); unsubAll(); unsubRequests && unsubRequests(); };
-            }, [userProfile, usersRef]);
+                const unsub2 = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').onSnapshot(s => {
+                    setActivePlayers(s.docs.map(d=>({id:d.id, ...d.data()})));
+                });
+                return () => { unsub1(); unsub2(); };
+            }, [userProfile]);
 
             const updateCredits = async (amt) => {
-                await usersRef.doc(userProfile.uid).update({ credits: firebase.firestore.FieldValue.increment(amt) });
+                const vip = getVipStatus(userData);
+                // VIP Bonus Logic
+                const finalAmt = amt > 0 ? Math.floor(amt * (vip.bonus || 1)) : amt;
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({
+                    credits: firebase.firestore.FieldValue.increment(finalAmt)
+                });
             };
 
-            const requestCredits = async () => {
-                if (myRequest) return;
-                await requestsRef.add({ userId: userProfile.uid, name: userProfile.name, amount: 200, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-            };
+            if(!userData) return <div className="h-screen flex items-center justify-center text-neon-blue font-tech animate-pulse text-2xl">INITIALIZING NEURAL LINK...</div>;
 
-            const approveRequest = async (req) => {
-                const batch = db.batch();
-                batch.update(usersRef.doc(req.userId), { credits: firebase.firestore.FieldValue.increment(req.amount) });
-                batch.delete(requestsRef.doc(req.id));
-                await batch.commit();
-            };
-
-            const logout = () => {
-                setBgm(false);
-                setUserProfile(null);
-                setUserData(null);
-                setScreen('lobby');
-            };
-
-            if (!userProfile) return <AuthScreen onJoin={(uid, name, role) => setUserProfile({uid, name, role})} db={db} />;
-            if (!userData) return <div className="flex h-screen items-center justify-center text-crypto-accent font-tech tracking-widest">LOADING NEURAL LINK...</div>;
-
-            const getFrameStyle = (frameId) => SHOP_ITEMS.find(i => i.id === frameId)?.css || '';
-            const getTitleStyle = (titleId) => SHOP_ITEMS.find(i => i.id === titleId)?.css || 'text-slate-300';
+            const vip = getVipStatus(userData);
 
             return (
-                <div className="max-w-6xl mx-auto p-4 pb-20 text-slate-200 font-sans">
-                    {showInv && <InventoryModal userData={userData} userProfile={userProfile} db={db} onClose={()=>setShowInv(false)} />}
-                    {showShop && <ShopModal userData={userData} userProfile={userProfile} db={db} currentAppId={APP_ID} credits={userData.credits} inventory={userData.inventory} equipped={userData.equipped} onClose={()=>setShowShop(false)} updateCredits={updateCredits} />}
-
-                    <header className="flex justify-between items-center mb-8 glass-panel p-4 sticky top-4 z-50">
-                        <div className="flex items-center gap-4 cursor-pointer" onClick={()=>setScreen('profile')}>
-                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center bg-black border border-white/20 text-white font-bold text-xl ${getFrameStyle(userData.equipped?.frame)}`}>
-                                {userData.username.charAt(0).toUpperCase()}
+                <div className="max-w-6xl mx-auto p-4 pb-20 min-h-screen flex flex-col font-sans text-slate-200">
+                    {/* Header */}
+                    <header className="glass-panel p-4 mb-6 sticky top-4 z-40 flex justify-between items-center">
+                        <div className="flex items-center gap-4 cursor-pointer group" onClick={()=>setScreen('profile')}>
+                            <div className={`w-12 h-12 rounded-xl bg-black border-2 flex items-center justify-center text-xl font-bold relative overflow-hidden ${vip.border || 'border-slate-600'}`}>
+                                {userData.equipped?.char === 'char_cat' ? '🐱' : userData.username.charAt(0)}
+                                {vip.level !== 'NONE' && <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-white/30 animate-shimmer"></div>}
                             </div>
                             <div>
-                                <h2 className={`font-bold text-lg ${getTitleStyle(userData.equipped?.title)}`}>{userData.username}</h2>
-                                <div className="text-xs text-crypto-accent font-mono">{userData.credits.toLocaleString()} SAT</div>
+                                <div className={`font-bold font-tech text-lg flex items-center gap-2 ${vip.color}`}>
+                                    {userData.username}
+                                    {vip.level !== 'NONE' && <span className="text-[9px] border px-1 rounded border-current">{vip.name}</span>}
+                                </div>
+                                <div className="text-xs text-slate-400 font-mono flex items-center gap-1">
+                                    <span className="text-neon-green">●</span> ONLINE | 💳 {userData.credits.toLocaleString()}
+                                </div>
                             </div>
                         </div>
                         <div className="flex gap-2">
-                             {screen !== 'lobby' && <button onClick={()=>setScreen('lobby')} className="p-2 bg-white/10 rounded hover:bg-white/20"><Icons.Home className="w-5 h-5"/></button>}
-                             <button onClick={()=>setShowShop(true)} className="p-2 bg-white/10 rounded hover:bg-white/20"><Icons.Shopping className="w-5 h-5"/></button>
-                             <button onClick={()=>setBgm(!bgm)} className={`p-2 rounded ${bgm?'text-neon-blue':'text-slate-500'}`}>{bgm?<Icons.Music className="w-5 h-5"/>:<Icons.MusicOff className="w-5 h-5"/>}</button>
-                             <button onClick={logout} className="p-2 bg-red-500/20 text-red-500 rounded"><Icons.Logout className="w-5 h-5"/></button>
+                            <button onClick={()=>setScreen('lobby')} className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"><Icons.Home className="w-5 h-5"/></button>
+                            <button onClick={()=>setShowBag(true)} className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"><Icons.Bag className="w-5 h-5"/></button>
+                            <button onClick={()=>setShowShop(true)} className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-blue/20 to-neon-purple/20 hover:from-neon-blue/40 hover:to-neon-purple/40 border border-neon-blue/30 flex items-center justify-center transition-all"><Icons.Shop className="w-5 h-5 text-white"/></button>
+                            <button onClick={toggleBgm} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${bgm ? 'bg-neon-green/20 text-neon-green' : 'bg-white/5 text-slate-500'}`}><Icons.Music className="w-5 h-5"/></button>
                         </div>
                     </header>
 
-                    {screen === 'lobby' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
-                            <div onClick={()=>setScreen('rooms')} className="game-card p-6 h-48 flex flex-col items-center justify-center border-blue-500/30">
-                                <Icons.Bingo className="w-16 h-16 text-blue-400 mb-4"/>
-                                <h3 className="text-xl font-bold">BINGO HALL</h3>
-                                <p className="text-xs text-slate-400">Multiplayer Live</p>
-                            </div>
-                            <div onClick={()=>setScreen('runner')} className="game-card p-6 h-48 flex flex-col items-center justify-center border-cyan-500/30">
-                                <Icons.Run className="w-16 h-16 text-cyan-400 mb-4"/>
-                                <h3 className="text-xl font-bold">CYBER RUN</h3>
-                                <p className="text-xs text-slate-400">Endless Runner</p>
-                            </div>
-                            <div onClick={()=>setScreen('namtao')} className="game-card p-6 h-48 flex flex-col items-center justify-center border-red-500/30">
-                                <Icons.Dice className="w-16 h-16 text-red-400 mb-4"/>
-                                <h3 className="text-xl font-bold">NAM TAO</h3>
-                                <p className="text-xs text-slate-400">Cyber Casino</p>
-                            </div>
-                            
-                            <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                <div className="h-64"><Leaderboard users={activePlayers} /></div>
-                                <div className="h-64"><ChatRoom userProfile={userProfile} db={db} /></div>
-                            </div>
-                        </div>
-                    )}
+                    {/* Content Area */}
+                    <main className="flex-1 relative">
+                        {screen === 'lobby' && (
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-fade-in">
+                                {/* Left: Games Grid */}
+                                <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div onClick={()=>setScreen('rooms')} className="nft-card h-48 rounded-2xl p-6 flex flex-col justify-between cursor-pointer group">
+                                        <Icons.Ticket className="w-12 h-12 text-neon-blue group-hover:scale-110 transition-transform"/>
+                                        <div>
+                                            <h3 className="text-2xl font-tech font-bold text-white">BINGO HALL</h3>
+                                            <p className="text-sm text-slate-400">Classic multiplayer bingo</p>
+                                        </div>
+                                    </div>
+                                    <div onClick={()=>setScreen('runner')} className="nft-card h-48 rounded-2xl p-6 flex flex-col justify-between cursor-pointer group border-neon-green/30">
+                                        <Icons.Robot className="w-12 h-12 text-neon-green group-hover:scale-110 transition-transform"/>
+                                        <div>
+                                            <h3 className="text-2xl font-tech font-bold text-white">CYBER RUNNER</h3>
+                                            <p className="text-sm text-slate-400">Endless running implementation</p>
+                                        </div>
+                                    </div>
+                                    <div onClick={()=>setScreen('memory')} className="nft-card h-48 rounded-2xl p-6 flex flex-col justify-between cursor-pointer group border-neon-purple/30">
+                                        <Icons.Brain className="w-12 h-12 text-neon-purple group-hover:scale-110 transition-transform"/>
+                                        <div>
+                                            <h3 className="text-2xl font-tech font-bold text-white">MEMORY PROTOCOL</h3>
+                                            <p className="text-sm text-slate-400">Pattern matching test</p>
+                                        </div>
+                                    </div>
+                                    <div onClick={()=>setScreen('namtao')} className="nft-card h-48 rounded-2xl p-6 flex flex-col justify-between cursor-pointer group border-red-500/30">
+                                        <div className="text-4xl">🎲</div>
+                                        <div>
+                                            <h3 className="text-2xl font-tech font-bold text-white">NAM TAO PU PLA</h3>
+                                            <p className="text-sm text-slate-400">Traditional dice betting</p>
+                                        </div>
+                                    </div>
+                                </div>
 
-                    {screen === 'rooms' && <BingoLobby userProfile={userProfile} userData={userData} db={db} onClose={()=>setScreen('lobby')} onJoinRoom={(rid)=>{setCurrentRoomId(rid); setScreen('bingo_room');}} />}
-                    {screen === 'bingo_room' && <BingoRoom roomId={currentRoomId} userProfile={userProfile} userData={userData} db={db} currentAppId={APP_ID} updateCredits={updateCredits} onLeave={()=>{setCurrentRoomId(null); setScreen('rooms');}} />}
-                    {screen === 'runner' && <CyberRunner userData={userData} updateCredits={updateCredits} onClose={()=>setScreen('lobby')} />}
-                    {screen === 'namtao' && <NamTaoPuPla userData={userData} updateCredits={updateCredits} onClose={()=>setScreen('lobby')} />}
-                    {screen === 'profile' && <UserProfile userData={userData} userProfile={userProfile} db={db} currentAppId={APP_ID} onClose={()=>setScreen('lobby')} />}
+                                {/* Right: Social & Rank */}
+                                <div className="md:col-span-4 flex flex-col gap-6">
+                                    <div className="h-64"><Ranking users={activePlayers} onClose={()=>{}} /></div>
+                                    <div className="h-64 glass-panel p-4 flex items-center justify-center text-slate-500 border-dashed border-2 border-slate-700">Ad Space / News</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Screens */}
+                        {screen === 'rooms' && <BingoLobby userProfile={userProfile} userData={userData} db={db} onClose={()=>setScreen('lobby')} onJoinRoom={(rid)=>{setCurrentRoomId(rid); setScreen('bingo_room');}} />}
+                        {screen === 'bingo_room' && <BingoRoom roomId={currentRoomId} userProfile={userProfile} userData={userData} db={db} currentAppId={APP_ID} updateCredits={updateCredits} onLeave={()=>{setCurrentRoomId(null); setScreen('rooms');}} />}
+                        {screen === 'runner' && <CyberRunner userData={userData} userProfile={userProfile} db={db} updateCredits={updateCredits} onClose={()=>setScreen('lobby')} />}
+                        {screen === 'memory' && <MemoryMatch userData={userData} userProfile={userProfile} db={db} updateCredits={updateCredits} onClose={()=>setScreen('lobby')} />}
+                        {screen === 'namtao' && <NamTaoPuPla userData={userData} updateCredits={updateCredits} onClose={()=>setScreen('lobby')} />}
+                    </main>
+
+                    {/* Modals */}
+                    {showBag && <InventoryModal userData={userData} userProfile={userProfile} db={db} onClose={()=>setShowBag(false)} />}
+                    {showShop && <ShopModal userData={userData} userProfile={userProfile} db={db} currentAppId={APP_ID} onClose={()=>setShowShop(false)} />}
                 </div>
             );
         }
