@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SATO ARCADE</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <!-- Font: Chakra Petch for Web3/Tech feel (Supports Thai) -->
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Prompt', 'sans-serif'],
+                        tech: ['Chakra Petch', 'sans-serif']
+                    },
+                    colors: { 
+                        crypto: {
+                            bg: '#050508',
+                            primary: '#6366f1', // Indigo
+                            accent: '#00f3ff', // Cyan
+                            success: '#10b981',
+                            danger: '#ef4444',
+                            gold: '#fbbf24'
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'spin-slow': 'spin 8s linear infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        glow: {
+                            'from': { boxShadow: '0 0 10px #00f3ff, 0 0 20px #00f3ff' },
+                            'to': { boxShadow: '0 0 20px #00f3ff, 0 0 30px #00f3ff' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { 
+            font-family: 'Prompt', sans-serif; 
+            background-color: #020204;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        
+        .web3-bg {
+            background-image: 
+                linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            perspective: 500px;
+        }
+
+        .glass-panel {
+            background: rgba(18, 18, 24, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            border-radius: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .game-card {
+            background: linear-gradient(180deg, rgba(30, 30, 40, 0.8) 0%, rgba(10, 10, 15, 0.9) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        .game-card:hover {
+            transform: translateY(-5px);
+            border-color: #00f3ff;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+        }
+
+        .tech-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            color: #00f3ff;
+            font-family: 'Chakra Petch', sans-serif;
+            letter-spacing: 1px;
+            font-size: 1.1em;
+            transition: all 0.3s;
+        }
+        .tech-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+            outline: none;
+        }
+
+        .gacha-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .text-glow { text-shadow: 0 0 10px rgba(0, 243, 255, 0.5); }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #050508; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+    </style>
+</head>
+<body class="min-h-screen relative selection:bg-crypto-primary selection:text-white">
+    <div class="web3-bg"></div>
+    <div id="root" class="relative z-10"></div>
+
+    <script type="text/babel">
+        // ==========================================
+        // FIREBASE CONFIG
+        // ==========================================
+        let firebaseConfig;
+        let currentAppId = 'sato-arcade-main-db';
+
+        if (typeof __firebase_config !== 'undefined') {
+            firebaseConfig = JSON.parse(__firebase_config);
+            if (typeof __app_id !== 'undefined') currentAppId = __app_id;
+        } else {
+            // Manual Config
+            firebaseConfig = {
+                apiKey: "AIzaSyCXqkbLFskjFsKkpsf2FBucRiagg5XB8o4",
+                authDomain: "bingo-sato.firebaseapp.com",
+                projectId: "bingo-sato",
+                storageBucket: "bingo-sato.firebasestorage.app",
+                messagingSenderId: "348261448088",
+                appId: "1:348261448088:web:61c19861c88b3c5094d3ed",
+                measurementId: "G-VDFPGKGN8Q"
+            };
+        }
+
+        let isConfigValid = false;
+        let db = null;
+        let auth = null;
+
+        if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "API_KEY_HERE") {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            isConfigValid = true;
+            db = firebase.firestore();
+            auth = firebase.auth();
+        }
+
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- CONSTANTS ---
+        const INITIAL_CREDITS = 500;
+        const DEFAULT_PRICE = 50;
+        const DEFAULT_PRIZES = { rank1: 1000, rank2: 500, rank3: 200 };
+        const HOST_PASSWORD = "hostsato56";
+        const BGM_URL = "https://cdn.pixabay.com/download/audio/2022/03/10/audio_5b3662283e.mp3"; 
+
+        const SHOP_ITEMS = [
+            { id: 'frame_default', name: 'กรอบเริ่มต้น', type: 'frame', price: 0, css: 'border-2 border-slate-600' },
+            { id: 'frame_gold', name: 'กรอบทองคำ', type: 'frame', price: 500, css: 'border-2 border-yellow-400 shadow-[0_0_15px_#fbbf24] bg-yellow-900/20' },
+            { id: 'frame_neon', name: 'กรอบนีออน', type: 'frame', price: 1000, css: 'border-2 border-cyan-400 shadow-[0_0_15px_#22d3ee] bg-cyan-900/20' },
+            { id: 'title_default', name: 'สีชื่อปกติ', type: 'title', price: 0, css: 'text-slate-400' },
+            { id: 'title_gold', name: 'สีชื่อทอง', type: 'title', price: 800, css: 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 font-tech font-bold' },
+        ];
+
+        const GACHA_ITEMS = [
+            { id: 'nft_common', name: 'ชิปทั่วไป', rarity: 'COMMON', color: 'text-slate-400', chance: 60, val: 50 },
+            { id: 'nft_rare', name: 'ข้อมูลหายาก', rarity: 'RARE', color: 'text-blue-400', chance: 30, val: 200 },
+            { id: 'nft_epic', name: 'แกนพลังงาน', rarity: 'EPIC', color: 'text-purple-400', chance: 9, val: 1000 },
+            { id: 'nft_leg', name: 'ตำนาน SATO', rarity: 'LEGENDARY', color: 'text-yellow-400', chance: 1, val: 5000 }
+        ];
+
+        // --- ICONS ---
+        const Icons = {
+            User: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            Crown: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>,
+            Shopping: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
+            Wallet: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><line x1="12" x2="12" y1="15" y2="15"/></svg>,
+            Diamond: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 3h12l4 6-10 13L2 9z"/></svg>,
+            Cube: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
+            Bingo: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>,
+            Gacha: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15 15 0 0 0 0 30 15 15 0 0 0 0-30z" transform="rotate(45 12 12)"/></svg>,
+            Slot: ({className}) => <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M6 12h.01"/><path d="M12 12h.01"/><path d="M18 12h.01"/></svg>,
+            Home: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+            Music: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>,
+            MusicOff: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3.14A3 3 0 0 0 6 18c1.66 0 3-1.34 3-3v-2"/><path d="M21 16a3 3 0 0 0-3-3v-3l-4.08-1.36"/></svg>,
+            Logout: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+            Chat: ({className}) => <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+            Trophy: ({className}) => <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17"/><path d="M14 14.66V17"/><path d="M12 10a8 8 0 0 1 8-8v10a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4V2a8 8 0 0 1 8 8z"/><path d="m10 22 1-5h2l1 5"/></svg>,
+            Inventory: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>,
+            Send: ({className}) => <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        };
+
+        // --- Audio System ---
+        const audioRef = new Audio(BGM_URL);
+        audioRef.loop = true;
+        audioRef.volume = 0.3;
+
+        // --- COMPONENTS ---
+
+        function LogoDisplay({ small }) {
+            return (
+                <div className={`flex flex-col items-center justify-center ${small ? 'mb-4' : 'mb-10 animate-float'}`}>
+                    <div className="relative group">
+                        <div className={`${small ? 'h-16 w-16' : 'h-28 w-28'} bg-black border border-crypto-primary rounded-xl items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] flex`}>
+                            <Icons.Cube className={`${small ? 'w-8 h-8' : 'w-12 h-12'} text-crypto-primary`} />
+                        </div>
+                    </div>
+                    {!small && (
+                        <div className="mt-4 text-center">
+                            <h1 className="text-4xl font-tech font-bold italic tracking-tighter text-white">SATO <span className="text-crypto-primary">ARCADE LOGIN</span></h1>
+                            <p className="text-[10px] text-crypto-accent font-mono tracking-[0.5em] mt-1">WEB3_GAMING_PROTOCOL</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function InventoryModal({ userData, userProfile, db, onClose }) {
+            const equipItem = async (type, id) => {
+                await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ [`equipped.${type}`]: id });
+            };
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+                    <div className="glass-panel w-full max-w-lg overflow-hidden flex flex-col border border-crypto-primary/30">
+                        <div className="p-4 border-b border-white/10 flex justify-between bg-black/40">
+                            <h2 className="text-xl font-tech font-bold text-crypto-accent">กระเป๋าของฉัน</h2>
+                            <button onClick={onClose} className="text-red-500">[X]</button>
+                        </div>
+                        <div className="p-4 grid grid-cols-2 gap-3 max-h-[70vh] overflow-y-auto">
+                            {SHOP_ITEMS.filter(i => userData.inventory.includes(i.id)).map(item => (
+                                <div key={item.id} className="p-3 bg-white/5 rounded border border-white/10 flex flex-col items-center">
+                                    <div className="text-xs text-slate-300 mb-2">{item.name}</div>
+                                    <button onClick={() => equipItem(item.type, item.id)} className="px-3 py-1 bg-crypto-primary/20 text-crypto-primary border border-crypto-primary/50 rounded text-[10px]">
+                                        {(userData.equipped[item.type] === item.id) ? 'ใช้อยู่' : 'สวมใส่'}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function Leaderboard({ users }) {
+            const sortedUsers = [...users].sort((a,b) => (b.credits || 0) - (a.credits || 0)).slice(0, 10);
+            return (
+                <div className="glass-panel p-4 h-full flex flex-col">
+                    <h3 className="font-tech text-crypto-gold text-lg mb-4 flex items-center gap-2">
+                        <Icons.Trophy className="text-yellow-500 w-5 h-5" /> อันดับเศรษฐี
+                    </h3>
+                    <div className="flex-1 overflow-y-auto space-y-2 custom-scroll pr-1">
+                        {sortedUsers.map((u, i) => (
+                            <div key={u.id} className="flex items-center justify-between p-2 bg-black/40 rounded border border-white/5">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-6 h-6 flex items-center justify-center font-bold text-xs rounded ${i===0?'bg-yellow-500 text-black':i===1?'bg-gray-400 text-black':i===2?'bg-orange-700 text-white':'bg-slate-800 text-slate-500'}`}>
+                                        {i+1}
+                                    </div>
+                                    <span className="text-sm font-mono text-slate-300">{u.username}</span>
+                                </div>
+                                <span className="text-xs text-crypto-accent font-bold">{u.credits?.toLocaleString()}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function ChatRoom({ userProfile, db }) {
+            const [msg, setMsg] = useState('');
+            const [chats, setChats] = useState([]);
+            const dummyRef = useRef();
+
+            useEffect(() => {
+                const unsub = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('bingo_chat')
+                    .orderBy('timestamp', 'desc').limit(20)
+                    .onSnapshot(s => {
+                        setChats(s.docs.map(d => d.data()).reverse());
+                        setTimeout(() => dummyRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+                    });
+                return () => unsub();
+            }, []);
+
+            const send = async (e) => {
+                e.preventDefault();
+                if(!msg.trim()) return;
+                await db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('bingo_chat').add({
+                    user: userProfile.name,
+                    msg: msg.trim(),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                setMsg('');
+            };
+
+            return (
+                <div className="glass-panel p-4 h-full flex flex-col">
+                    <h3 className="font-tech text-crypto-primary text-lg mb-2 flex items-center gap-2">
+                        <Icons.Chat className="text-blue-400 w-5 h-5" /> ห้องแชทสด
+                    </h3>
+                    <div className="flex-1 overflow-y-auto space-y-2 mb-2 custom-scroll bg-black/20 p-2 rounded-lg h-32">
+                        {chats.map((c, i) => (
+                            <div key={i} className="text-xs break-words">
+                                <span className="text-crypto-accent font-bold">{c.user}:</span> <span className="text-slate-300">{c.msg}</span>
+                            </div>
+                        ))}
+                        <div ref={dummyRef}></div>
+                    </div>
+                    <form onSubmit={send} className="flex gap-2">
+                        <input value={msg} onChange={e=>setMsg(e.target.value)} className="flex-1 bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:border-crypto-primary outline-none" placeholder="พิมพ์ข้อความ..." />
+                        <button type="submit" className="bg-crypto-primary text-white p-2 rounded hover:bg-indigo-600"><Icons.Send className="w-4 h-4" /></button>
+                    </form>
+                </div>
+            );
+        }
+
+        function MarketplaceModal({ inventory, credits, equipped, onClose, onBuy, onEquip }) {
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in p-4">
+                    <div className="glass-panel w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-white/10 shadow-2xl">
+                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                            <div>
+                                <h2 className="text-2xl font-tech font-bold text-white flex items-center gap-3">
+                                    <Icons.Diamond className="text-crypto-accent w-6 h-6" /> ร้านค้าไอเทม
+                                </h2>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-xl font-mono font-bold text-white">{credits.toLocaleString()} เหรียญ</div>
+                                <button onClick={onClose} className="text-[10px] text-white/50 hover:text-white uppercase tracking-widest mt-1 bg-white/5 px-3 py-1 rounded-full hover:bg-white/10 transition-all">ปิดหน้าต่าง</button>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {SHOP_ITEMS.map(item => {
+                                const isOwned = (inventory || []).includes(item.id);
+                                const isEquipped = equipped?.frame === item.id || equipped?.title === item.id;
+                                
+                                return (
+                                    <div key={item.id} className="bg-white/5 p-5 rounded-3xl border border-white/5 hover:border-crypto-accent/50 flex items-center justify-between group transition-all relative overflow-hidden">
+                                        <div className="flex items-center gap-4 relative z-10">
+                                            {item.type === 'frame' ? (
+                                                <div className={`w-14 h-14 flex items-center justify-center bg-black/40 rounded-2xl ${item.css}`}>
+                                                    <span className="text-[9px] text-slate-500 font-mono">รูป</span>
+                                                </div>
+                                            ) : (
+                                                <div className={`text-base ${item.css}`}>ตัวอย่าง</div>
+                                            )}
+                                            <div>
+                                                <div className="font-bold text-base text-slate-200 group-hover:text-crypto-accent transition-colors font-tech uppercase tracking-wide">{item.name}</div>
+                                                <div className="text-[11px] text-slate-400 font-mono mt-1">{item.price > 0 ? `${item.price} เหรียญ` : 'ฟรี'}</div>
+                                            </div>
+                                        </div>
+                                        <div className="relative z-10">
+                                            {isOwned ? (
+                                                <button 
+                                                    onClick={() => onEquip(item.type, item.id)}
+                                                    className={`px-5 py-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${isEquipped ? 'bg-emerald-500/20 text-emerald-400 cursor-default border border-emerald-500/30' : 'glass-btn text-slate-300'}`}
+                                                >
+                                                    {isEquipped ? 'ใช้อยู่' : 'สวมใส่'}
+                                                </button>
+                                            ) : (
+                                                <button 
+                                                    onClick={() => onBuy(item)}
+                                                    className="px-5 py-2 bg-crypto-primary/20 border border-crypto-primary/30 text-white hover:bg-crypto-primary hover:shadow-glow rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
+                                                >
+                                                    ซื้อ
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function BingoGame({ userProfile, userData, db, currentAppId, updateCredits }) {
+            const [gameState, setGameState] = useState({ currentNumber: null, history: [], winnersCount: 0 });
+            const [playerCard, setPlayerCard] = useState([]);
+            const [hasClaimed, setHasClaimed] = useState(false);
+            const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+            const autoPlayRef = useRef(null);
+
+            const gameRef = useMemo(() => db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('bingo_room').doc('main_room'), [db, currentAppId]);
+
+            useEffect(() => {
+                const unsub = gameRef.onSnapshot(doc => {
+                    if (doc.exists) setGameState({ ...doc.data(), history: doc.data().history || [] });
+                    else if (userProfile.role === 'host') gameRef.set({ currentNumber: null, history: [], winnersCount: 0 });
+                });
+                return () => unsub();
+            }, []);
+
+            const generateNumber = async () => {
+                if (userProfile.role !== 'host') return;
+                const available = Array.from({length: 75}, (_, i) => i + 1).filter(n => !gameState.history.includes(n));
+                if (available.length === 0) { setIsAutoPlaying(false); return; }
+                const newNum = available[Math.floor(Math.random() * available.length)];
+                await gameRef.update({ currentNumber: newNum, history: [newNum, ...gameState.history] });
+            };
+
+            const toggleAutoPlay = () => {
+                if (isAutoPlaying) { setIsAutoPlaying(false); } 
+                else { setIsAutoPlaying(true); generateNumber(); }
+            };
+
+            useEffect(() => {
+                if (isAutoPlaying) { autoPlayRef.current = setInterval(generateNumber, 3500); }
+                else { clearInterval(autoPlayRef.current); }
+                return () => clearInterval(autoPlayRef.current);
+            }, [isAutoPlaying]);
+
+            const buyCard = async () => {
+                if (userData.credits < 50) return alert("เงินไม่พอ (50 เหรียญ)");
+                await updateCredits(-50);
+                const card = [];
+                const cols = [{s:1,e:15}, {s:16,e:30}, {s:31,e:45}, {s:46,e:60}, {s:61,e:75}];
+                for(let c=0; c<5; c++) {
+                    const colNums = [];
+                    while(colNums.length < 5) {
+                        const num = Math.floor(Math.random() * (cols[c].e - cols[c].s + 1)) + cols[c].s;
+                        if(!colNums.includes(num)) colNums.push(num);
+                    }
+                    card.push(colNums);
+                }
+                card[2][2] = 'FREE';
+                setPlayerCard(card);
+                setHasClaimed(false);
+            };
+
+            const checkBingo = useMemo(() => {
+                if (playerCard.length === 0) return false;
+                const isMarked = (r, c) => { const v = playerCard[c][r]; return v === 'FREE' || gameState.history.includes(v); };
+                for(let i=0; i<5; i++) {
+                    if([0,1,2,3,4].every(x => isMarked(i, x))) return true; 
+                    if([0,1,2,3,4].every(x => isMarked(x, i))) return true;
+                }
+                if([0,1,2,3,4].every(i => isMarked(i, i))) return true;
+                if([0,1,2,3,4].every(i => isMarked(i, 4-i))) return true;
+                return false;
+            }, [playerCard, gameState.history]);
+
+            useEffect(() => {
+                if (checkBingo && !hasClaimed) {
+                    confetti({ particleCount: 150 });
+                    updateCredits(200); 
+                    setHasClaimed(true);
+                }
+            }, [checkBingo]);
+
+            return (
+                <div className="space-y-6">
+                    <div className="glass-panel p-8 text-center">
+                        <div className="text-6xl font-tech font-bold text-crypto-accent mb-2">{gameState.currentNumber || '--'}</div>
+                        <div className="text-xs text-slate-500 font-mono tracking-widest">เลขปัจจุบัน</div>
+                    </div>
+
+                    {userProfile.role === 'host' ? (
+                        <div className="glass-panel p-6 border-crypto-primary/30">
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="font-tech text-crypto-primary tracking-widest">เมนูผู้ดูแล</span>
+                                {userData.isVip ? <span className="text-xs bg-yellow-500 text-black px-2 rounded font-bold">VIP ACCESS</span> : <span className="text-xs text-red-500">VIP ONLY</span>}
+                            </div>
+                            {userData.isVip ? (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button onClick={generateNumber} className="bg-white text-black font-bold py-3 rounded hover:bg-slate-200 transition-all">สุ่มตัวเลข</button>
+                                    <button onClick={toggleAutoPlay} className={`border border-white/20 py-3 rounded transition-all ${isAutoPlaying ? 'bg-crypto-accent text-black animate-pulse' : 'text-slate-300 hover:bg-white/5'}`}>{isAutoPlaying ? 'กำลังสุ่ม...' : 'เล่นออโต้'}</button>
+                                    <button onClick={() => {if(confirm('เริ่มเกมใหม่?')) gameRef.update({currentNumber:null, history:[]})}} className="col-span-2 py-2 text-xs text-red-500 hover:text-red-400">เริ่มเกมใหม่</button>
+                                </div>
+                            ) : (
+                                <div className="text-center text-slate-500 text-sm py-4 bg-black/20 rounded">ต้องเป็น VIP ถึงจะสร้างห้องได้</div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="glass-panel p-6 text-center">
+                            {playerCard.length === 0 ? (
+                                <button onClick={buyCard} className="bg-crypto-accent text-black font-bold py-4 px-10 rounded-full hover:shadow-[0_0_20px_rgba(0,243,255,0.4)] transition-all">ซื้อตั๋วบิงโก (50 เหรียญ)</button>
+                            ) : (
+                                <div>
+                                    {checkBingo && <div className="text-2xl font-bold text-yellow-400 mb-4 animate-bounce">BINGO! +200 เหรียญ</div>}
+                                    <div className="grid grid-cols-5 gap-2 aspect-square mb-4">
+                                        {playerCard.map((col, c) => (
+                                            <div key={c} className="flex flex-col gap-2">
+                                                {col.map((val, r) => {
+                                                    const marked = val === 'FREE' || gameState.history.includes(val);
+                                                    return <div key={r} className={`flex-1 flex items-center justify-center font-bold text-sm rounded ${marked ? 'bg-crypto-primary text-white' : 'bg-white/5 text-slate-500'}`}>{val === 'FREE' ? '★' : val}</div>
+                                                })}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button onClick={buyCard} className="text-xs text-slate-400 hover:text-white border-b border-slate-600">ซื้อใบใหม่</button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function GachaGame({ userData, updateCredits }) {
+            const [isSpinning, setIsSpinning] = useState(false);
+            const [result, setResult] = useState(null);
+
+            const spin = async () => {
+                if (userData.credits < 100) return alert("เหรียญไม่พอ (100)");
+                await updateCredits(-100);
+                setIsSpinning(true);
+                setResult(null);
+
+                setTimeout(() => {
+                    const rand = Math.random() * 100;
+                    let item;
+                    if (rand < 60) item = GACHA_ITEMS[0];
+                    else if (rand < 90) item = GACHA_ITEMS[1];
+                    else if (rand < 99) item = GACHA_ITEMS[2];
+                    else item = GACHA_ITEMS[3];
+
+                    setResult(item);
+                    setIsSpinning(false);
+                    if (item.val > 0) updateCredits(item.val);
+                }, 2000);
+            };
+
+            return (
+                <div className="glass-panel p-8 text-center flex flex-col items-center justify-center h-full">
+                    <h2 className="text-2xl font-tech font-bold text-crypto-accent mb-6 tracking-widest">CYBER CAPSULE</h2>
+                    <div className={`w-40 h-40 border-4 border-white/10 rounded-full flex items-center justify-center mb-8 relative bg-black/40 ${isSpinning ? 'gacha-shake' : ''}`}>
+                        {result ? (
+                            <div className="animate-in zoom-in duration-300">
+                                <div className={`text-4xl ${result.color} mb-2`}>✦</div>
+                                <div className={`text-sm font-bold ${result.color}`}>{result.rarity}</div>
+                            </div>
+                        ) : (
+                            <Icons.Cube className={`w-16 h-16 text-slate-600 ${isSpinning ? 'animate-spin' : ''}`} />
+                        )}
+                    </div>
+                    {result && <div className="mb-4 text-white font-mono">ได้รับ: {result.name} (+{result.val} เหรียญ)</div>}
+                    <button onClick={spin} disabled={isSpinning} className="bg-white text-black font-bold py-3 px-12 rounded-full hover:bg-crypto-accent transition-all disabled:opacity-50">{isSpinning ? 'กำลังสุ่ม...' : 'สุ่มกาชา (100 เหรียญ)'}</button>
+                </div>
+            );
+        }
+
+        function SlotsGame({ userData, updateCredits }) {
+            const [reels, setReels] = useState(['7', 'BAR', '🍒']);
+            const [spinning, setSpinning] = useState(false);
+            const symbols = ['7', 'BAR', '🍒', '💎', '🍋', '🔔'];
+
+            const spin = async () => {
+                if(userData.credits < 50) return alert("เหรียญไม่พอ (50)");
+                await updateCredits(-50);
+                setSpinning(true);
+                
+                let i = 0;
+                const interval = setInterval(() => {
+                    setReels(prev => prev.map(() => symbols[Math.floor(Math.random()*symbols.length)]));
+                    i++;
+                    if(i > 20) {
+                        clearInterval(interval);
+                        finalize();
+                    }
+                }, 100);
+            };
+
+            const finalize = () => {
+                const final = [
+                    symbols[Math.floor(Math.random()*symbols.length)],
+                    symbols[Math.floor(Math.random()*symbols.length)],
+                    symbols[Math.floor(Math.random()*symbols.length)]
+                ];
+                setReels(final);
+                setSpinning(false);
+                
+                if(final[0] === final[1] && final[1] === final[2]) {
+                    updateCredits(1000);
+                    confetti();
+                    alert("JACKPOT! +1000");
+                } else if(final[0] === final[1] || final[1] === final[2] || final[0] === final[2]) {
+                    updateCredits(100);
+                    alert("WIN! +100");
+                }
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                    <h2 className="text-3xl font-tech font-bold text-yellow-400 mb-6 text-glow">NEON SLOTS</h2>
+                    <div className="flex gap-4 mb-8 bg-black/80 p-6 rounded-2xl border-2 border-yellow-500/50 shadow-[0_0_30px_rgba(251,191,36,0.2)]">
+                        {reels.map((r, i) => (
+                            <div key={i} className="w-20 h-24 bg-gradient-to-b from-gray-800 to-black rounded-lg flex items-center justify-center text-5xl border border-white/10 overflow-hidden relative">
+                                <div className={`transition-all ${spinning ? 'animate-pulse blur-sm' : ''}`}>{r}</div>
+                                <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 pointer-events-none"></div>
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={spin} disabled={spinning} className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold font-tech text-xl py-3 px-12 rounded-full shadow-lg transition-all transform hover:scale-105 disabled:opacity-50">{spinning ? 'กำลังหมุน...' : 'หมุนสล็อต (50 CR)'}</button>
+                </div>
+            );
+        }
+
+        // --- AUTH ---
+        function AuthScreen({ onJoin, db, currentAppId }) {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [mode, setMode] = useState('login');
+
+            const login = async (e) => {
+                e.preventDefault();
+                setError('');
+                
+                // Force check if DB is ready
+                if (!db) {
+                    setError("กำลังเชื่อมต่อฐานข้อมูล... กรุณารอสักครู่");
+                    return;
+                }
+
+                if(!username || !password) return setError("กรุณากรอกข้อมูลให้ครบ");
+                
+                const cleanId = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                let role = 'player';
+                let isAdminLogin = false;
+                if(username === 'admin' && password === HOST_PASSWORD) {
+                    role = 'host';
+                    isAdminLogin = true;
+                }
+
+                if (!isAdminLogin && cleanId.length < 3) {
+                    return setError("ชื่อผู้ใช้ต้องเป็นภาษาอังกฤษ/ตัวเลข อย่างน้อย 3 ตัว");
+                }
+
+                setLoading(true);
+                
+                try {
+                    const userRef = db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('bingo_users').doc(cleanId);
+                    const doc = await userRef.get();
+
+                    if (mode === 'register') {
+                        if (doc.exists) throw new Error("ชื่อนี้มีคนใช้แล้ว");
+                        // Register Logic
+                        await userRef.set({
+                            username: username,
+                            password: password, 
+                            role: 'player',
+                            credits: INITIAL_CREDITS,
+                            level: 1,
+                            xp: 0,
+                            inventory: ['frame_default', 'title_default'],
+                            equipped: { frame: 'frame_default', title: 'title_default' },
+                            joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        onJoin(cleanId, username, role);
+                    } else {
+                        // Login Logic
+                        if (!doc.exists) {
+                            if (isAdminLogin) {
+                                // First time admin setup
+                                await userRef.set({
+                                    username: 'ADMIN',
+                                    password: HOST_PASSWORD,
+                                    role: 'host',
+                                    credits: 999999,
+                                    level: 99,
+                                    isVip: true,
+                                    inventory: [],
+                                    equipped: {},
+                                    joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+                            } else {
+                                throw new Error("ไม่พบชื่อผู้ใช้นี้ (กรุณาสมัครสมาชิกก่อน)");
+                            }
+                        } else {
+                            const data = doc.data();
+                            if (isAdminLogin) {
+                                if (data.role !== 'host') await userRef.update({ role: 'host', isVip: true });
+                            } else {
+                                if (data.password !== password) throw new Error("รหัสผ่านไม่ถูกต้อง");
+                            }
+                        }
+                        onJoin(cleanId, username, role);
+                    }
+                } catch(err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="glass-panel p-10 max-w-sm w-full text-center relative overflow-hidden border-t-2 border-crypto-primary">
+                        <div className="mb-8">
+                            <div className="w-20 h-20 bg-black/50 rounded-2xl mx-auto flex items-center justify-center border border-crypto-primary shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+                                <Icons.Cube className="w-10 h-10 text-white" />
+                            </div>
+                            <h1 className="text-3xl font-tech font-bold text-white mt-4">SATO <span className="text-crypto-primary">ARCADE LOGIN</span></h1>
+                        </div>
+                        
+                        <div className="flex bg-black/20 rounded-lg p-1 mb-6 border border-white/5">
+                            <button onClick={() => setMode('login')} className={`flex-1 py-2 text-xs font-bold rounded transition-all ${mode === 'login' ? 'bg-crypto-primary text-white shadow' : 'text-slate-500'}`}>เข้าสู่ระบบ</button>
+                            <button onClick={() => setMode('register')} className={`flex-1 py-2 text-xs font-bold rounded transition-all ${mode === 'register' ? 'bg-crypto-accent text-black shadow' : 'text-slate-500'}`}>สมัครใหม่</button>
+                        </div>
+
+                        <form onSubmit={login} className="space-y-4">
+                            <input value={username} onChange={e=>setUsername(e.target.value)} className="tech-input w-full px-4 py-3 rounded text-sm text-center placeholder-slate-500" placeholder="ชื่อผู้ใช้ (ภาษาอังกฤษ)" />
+                            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="tech-input w-full px-4 py-3 rounded text-sm text-center placeholder-slate-500" placeholder="รหัสผ่าน" />
+                            
+                            {error && <div className="p-3 bg-red-500/20 border border-red-500/50 text-red-400 text-xs rounded animate-pulse">{error}</div>}
+                            
+                            <button disabled={loading} className="w-full bg-white text-black font-tech font-bold py-3 rounded hover:bg-crypto-accent hover:shadow-lg transition-all mt-4 tracking-widest">
+                                {loading ? 'กำลังโหลด...' : (mode === 'login' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก')}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- MAIN APP ---
+        function App() {
+            const [userProfile, setUserProfile] = useState(null);
+            const [userData, setUserData] = useState(null);
+            const [activePlayers, setActivePlayers] = useState([]);
+            const [bgm, setBgm] = useState(false);
+            const [screen, setScreen] = useState('lobby'); 
+            const [showInv, setShowInv] = useState(false);
+            const [pendingRequests, setPendingRequests] = useState([]);
+            const [myRequest, setMyRequest] = useState(null);
+
+            const usersRef = useMemo(() => db && currentAppId ? db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('bingo_users') : null, [db, currentAppId]);
+            const requestsRef = useMemo(() => db && currentAppId ? db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('bingo_requests') : null, [db, currentAppId]);
+
+            useEffect(() => {
+                const init = async () => {
+                    if (!auth.currentUser) await auth.signInAnonymously();
+                };
+                init();
+            }, []);
+
+            useEffect(() => {
+                if(bgm) audioRef.play().catch(()=>setBgm(false));
+                else audioRef.pause();
+            }, [bgm]);
+
+            // Data Sync
+            useEffect(() => {
+                if(!userProfile || !usersRef) return;
+                const unsubMe = usersRef.doc(userProfile.uid).onSnapshot(d => d.exists && setUserData(d.data()));
+                const unsubAll = usersRef.orderBy('joinedAt', 'desc').limit(50).onSnapshot(s => setActivePlayers(s.docs.map(d => ({id:d.id, ...d.data()}))));
+                
+                // Requests Sync
+                let unsubRequests;
+                if (userProfile.role === 'host') {
+                    unsubRequests = requestsRef.onSnapshot(s => setPendingRequests(s.docs.map(d => ({id:d.id, ...d.data()}))));
+                } else {
+                    unsubRequests = requestsRef.where('userId', '==', userProfile.uid).onSnapshot(s => setMyRequest(s.empty ? null : {id:s.docs[0].id, ...s.docs[0].data()}));
+                }
+
+                return () => { unsubMe(); unsubAll(); unsubRequests && unsubRequests(); };
+            }, [userProfile, usersRef]);
+
+            const updateCredits = async (amt) => {
+                await usersRef.doc(userProfile.uid).update({ credits: firebase.firestore.FieldValue.increment(amt) });
+            };
+
+            const requestCredits = async () => {
+                if (myRequest) return;
+                await requestsRef.add({ userId: userProfile.uid, name: userProfile.name, amount: 200, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            };
+
+            const approveRequest = async (req) => {
+                const batch = db.batch();
+                batch.update(usersRef.doc(req.userId), { credits: firebase.firestore.FieldValue.increment(req.amount) });
+                batch.delete(requestsRef.doc(req.id));
+                await batch.commit();
+            };
+
+            const buyVip = async () => {
+                if (userData.credits < 5000) return alert("เงินไม่พอ (5000 เหรียญ)");
+                if (confirm('ยืนยันซื้อสถานะ VIP?')) {
+                    await usersRef.doc(userProfile.uid).update({ 
+                        credits: firebase.firestore.FieldValue.increment(-5000),
+                        isVip: true
+                    });
+                    alert("ยินดีต้อนรับสู่ VIP CLUB!");
+                }
+            };
+
+            const logout = () => {
+                setBgm(false);
+                setUserProfile(null);
+                setUserData(null);
+                setScreen('lobby');
+            };
+
+            if (!userProfile) return <AuthScreen onJoin={(uid, name, role) => setUserProfile({uid, name, role})} db={db} currentAppId={currentAppId} />;
+            if (!userData) return <div className="flex h-screen items-center justify-center text-crypto-accent font-tech tracking-widest">กำลังดาวน์โหลดข้อมูล...</div>;
+
+            const getFrameStyle = (frameId) => SHOP_ITEMS.find(i => i.id === frameId)?.css || '';
+            const getTitleStyle = (titleId) => SHOP_ITEMS.find(i => i.id === titleId)?.css || 'text-slate-300';
+
+            return (
+                <div className="max-w-6xl mx-auto p-4 pb-20 text-slate-200 font-sans">
+                    {showInv && <InventoryModal userData={userData} userProfile={userProfile} db={db} onClose={()=>setShowInv(false)} />}
+
+                    <header className="flex justify-between items-center mb-8 glass-panel p-4 sticky top-4 z-50">
+                        <div className="flex items-center gap-4">
+                            <div className="relative cursor-pointer" onClick={()=>setShowInv(true)}>
+                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center bg-black border border-white/20 text-white font-bold text-xl ${getFrameStyle(userData.equipped?.frame)}`}>
+                                    {userData.username.charAt(0).toUpperCase()}
+                                </div>
+                                {userData.isVip && <div className="absolute -top-2 -right-2 bg-yellow-500 text-black text-[9px] font-bold px-1 rounded">VIP</div>}
+                            </div>
+                            <div>
+                                <h2 className={`font-bold text-lg ${getTitleStyle(userData.equipped?.title)}`}>{userData.username}</h2>
+                                <div className="text-xs text-crypto-accent font-mono">{userData.credits.toLocaleString()} เหรียญ</div>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            {screen !== 'lobby' && (
+                                <button onClick={() => setScreen('lobby')} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-all">
+                                    <Icons.Home /> กลับหน้าแรก
+                                </button>
+                            )}
+                            {userProfile.role === 'player' && (
+                                <button onClick={requestCredits} disabled={!!myRequest} className={`px-4 py-2 rounded-lg text-sm transition-all border border-white/10 ${myRequest ? 'text-slate-500' : 'bg-crypto-success/20 text-crypto-success hover:bg-crypto-success/30'}`}>
+                                    {myRequest ? 'รออนุมัติ...' : '+ ขอเติมเงิน'}
+                                </button>
+                            )}
+                            <button onClick={logout} className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg"><Icons.Logout /></button>
+                            <button onClick={()=>setBgm(!bgm)} className={`p-2 rounded-lg transition-all ${bgm ? 'bg-crypto-accent text-black shadow-[0_0_10px_#00f3ff]' : 'bg-white/5 text-slate-400'}`}>
+                                {bgm ? <Icons.Music /> : <Icons.MusicOff />}
+                            </button>
+                        </div>
+                    </header>
+
+                    {screen === 'lobby' && (
+                        <div className="space-y-8 animate-in fade-in zoom-in duration-300">
+                            <div className="text-center mb-8">
+                                <LogoDisplay small />
+                                <p className="text-slate-400 text-sm mt-2">เลือกเกมที่คุณต้องการเล่น</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div onClick={() => setScreen('bingo')} className="game-card p-6 flex flex-col items-center justify-center h-64 group relative">
+                                    <div className="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <Icons.Bingo className="w-16 h-16 text-blue-400 mb-4 group-hover:scale-110 transition-transform" />
+                                    <h3 className="text-2xl font-tech font-bold text-white tracking-widest">BINGO</h3>
+                                    <p className="text-xs text-slate-400 mt-2">บิงโกออนไลน์</p>
+                                </div>
+
+                                <div onClick={() => setScreen('gacha')} className="game-card p-6 flex flex-col items-center justify-center h-64 group relative">
+                                    <div className="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <Icons.Gacha className="w-16 h-16 text-purple-400 mb-4 group-hover:rotate-180 transition-transform duration-700" />
+                                    <h3 className="text-2xl font-tech font-bold text-white tracking-widest">GACHA</h3>
+                                    <p className="text-xs text-slate-400 mt-2">สุ่มกาชา</p>
+                                </div>
+
+                                <div onClick={() => setScreen('slots')} className="game-card p-6 flex flex-col items-center justify-center h-64 group relative">
+                                    <div className="absolute inset-0 bg-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <Icons.Slot className="w-16 h-16 text-yellow-400 mb-4 group-hover:animate-bounce" />
+                                    <h3 className="text-2xl font-tech font-bold text-white tracking-widest">SLOTS</h3>
+                                    <p className="text-xs text-slate-400 mt-2">สล็อตวัดดวง</p>
+                                </div>
+                            </div>
+
+                            {!userData.isVip && (
+                                <div className="mt-8 text-center">
+                                    <button onClick={buyVip} className="text-xs text-slate-500 hover:text-yellow-400 transition-colors border-b border-slate-700 pb-1">
+                                        ซื้อสถานะ VIP (5000 เหรียญ) เพื่อสร้างห้องบิงโก
+                                    </button>
+                                </div>
+                            )}
+
+                            {userProfile.role === 'host' && (
+                                <div className="mt-8 glass-panel p-4 max-w-md mx-auto">
+                                    <h4 className="text-sm font-bold text-slate-400 mb-2">คำขอเติมเงินล่าสุด</h4>
+                                    <div className="space-y-2">
+                                        {pendingRequests.length === 0 && <p className="text-xs text-slate-600 text-center">ไม่มีคำขอ</p>}
+                                        {pendingRequests.map(req => (
+                                            <div key={req.id} className="flex justify-between items-center bg-black/40 p-2 rounded">
+                                                <span className="text-xs text-white">{req.name}</span>
+                                                <button onClick={() => approveRequest(req)} className="text-[10px] bg-green-600 px-2 py-1 rounded">อนุมัติ</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                                <div className="h-64"><Leaderboard users={activePlayers} /></div>
+                                <div className="h-64"><ChatRoom userProfile={userProfile} db={db} /></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {screen === 'bingo' && <BingoGame userProfile={userProfile} userData={userData} db={db} currentAppId={currentAppId} updateCredits={updateCredits} />}
+                    {screen === 'gacha' && <GachaGame userData={userData} updateCredits={updateCredits} />}
+                    {screen === 'slots' && <SlotsGame userData={userData} updateCredits={updateCredits} />}
+
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
