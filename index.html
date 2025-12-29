@@ -3,53 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SATO ARCADE - WEB3</title>
+    <title>ซาโตะ อาเขต - SATO ARCADE</title>
     
-    <!-- Libraries -->
+    <!-- Core Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- Firebase -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Orbitron:wght@700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
 
-    <!-- Tailwind Config -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { 
-                        sans: ['"Noto Sans Thai"', 'sans-serif'],
-                        tech: ['"Rajdhani"', 'sans-serif']
+                        'thai': ['"Noto Sans Thai"', 'sans-serif'],
+                        'cyber': ['"Orbitron"', 'sans-serif'],
+                        'tech': ['"Rajdhani"', 'sans-serif']
                     },
                     colors: { 
-                        'neon-blue': '#00f3ff',
-                        'neon-purple': '#bc13fe',
-                        'neon-green': '#0aff68',
-                        'glass-bg': 'rgba(10, 10, 20, 0.75)',
-                        'glass-border': 'rgba(255, 255, 255, 0.1)',
+                        'brand-primary': '#4f46e5', // Indigo
+                        'brand-secondary': '#8b5cf6', // Violet
+                        'brand-accent': '#06b6d4', // Cyan
+                        'glass': 'rgba(15, 23, 42, 0.9)',
+                        'vip-silver': '#e2e8f0',
+                        'vip-gold': '#fbbf24',
+                        'vip-plat': '#22d3ee',
                     },
                     animation: {
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'float': 'float 6s ease-in-out infinite',
-                        'shimmer': 'shimmer 2s linear infinite',
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                        'pulse-slow': 'pulse 3s infinite',
+                        'marquee': 'marquee 25s linear infinite',
                     },
                     keyframes: {
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-10px)' },
-                        },
-                        shimmer: {
-                            '0%': { backgroundPosition: '200% 0' },
-                            '100%': { backgroundPosition: '-200% 0' }
-                        }
+                        fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: 0 }, '100%': { transform: 'translateY(0)', opacity: 1 } },
+                        marquee: { '0%': { transform: 'translateX(100%)' }, '100%': { transform: 'translateX(-100%)' } }
                     }
                 }
             }
@@ -57,1095 +56,762 @@
     </script>
 
     <style>
-        body { 
-            font-family: 'Noto Sans Thai', sans-serif; 
-            background-color: #050508;
+        body {
+            background-color: #000000;
             color: #e2e8f0;
-            overflow-x: hidden;
-            touch-action: manipulation;
-            background-image: 
-                radial-gradient(circle at 50% 0%, rgba(188, 19, 254, 0.15), transparent 50%),
-                radial-gradient(circle at 0% 100%, rgba(0, 243, 255, 0.1), transparent 50%);
+            font-family: 'Noto Sans Thai', sans-serif;
+            overflow: hidden;
         }
         
-        .web3-grid {
-            background-size: 40px 40px;
-            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        .cyber-grid-bg {
             position: fixed; inset: 0; z-index: -1;
-            mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+            background-image: 
+                linear-gradient(rgba(6, 182, 212, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
         }
 
-        .glass-panel {
-            background: rgba(20, 20, 35, 0.6);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            border-radius: 1.5rem;
+        .glass-card {
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
         }
 
-        .nft-card {
-            background: linear-gradient(145deg, rgba(30, 30, 45, 0.6) 0%, rgba(10, 10, 15, 0.8) 100%);
-            border: 1px solid rgba(0, 243, 255, 0.1);
-            position: relative; overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        .nft-card:hover {
-            transform: translateY(-5px) scale(1.02);
-            border-color: rgba(0, 243, 255, 0.5);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
-        }
-        .nft-card::before {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transition: 0.5s;
-        }
-        .nft-card:hover::before { left: 100%; }
-
-        .btn-cyber {
-            background: linear-gradient(90deg, #00f3ff, #bc13fe);
-            background-size: 200% 200%;
-            border: none; color: black; font-weight: bold;
-            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        .input-field {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
             transition: all 0.3s;
         }
-        .btn-cyber:hover {
-            animation: shimmer 2s linear infinite;
-            filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.5));
+        .input-field:focus {
+            border-color: #06b6d4;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+            outline: none;
         }
-
-        /* 3D Card Flip */
-        .card-container { perspective: 1000px; }
-        .card-inner {
-            position: relative; width: 100%; height: 100%; text-align: center;
-            transition: transform 0.6s; transform-style: preserve-3d;
-        }
-        .card-flipped { transform: rotateY(180deg); }
-        .card-front, .card-back {
-            position: absolute; width: 100%; height: 100%;
-            backface-visibility: hidden; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .card-front { background: #1a1a2e; border: 2px solid #333; }
-        .card-back { 
-            background: linear-gradient(135deg, #2a2a4a, #1a1a2e); 
-            border: 2px solid #bc13fe; transform: rotateY(180deg); 
-            box-shadow: 0 0 15px rgba(188, 19, 254, 0.4);
-        }
-
+        
         .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #00f3ff; }
+        .custom-scroll::-webkit-scrollbar-track { background: #000; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        /* VIP & Frame Styles */
+        .frame-neon { border: 2px solid #06b6d4; box-shadow: 0 0 10px #06b6d4; }
+        .frame-gold { border: 2px solid #fbbf24; box-shadow: 0 0 10px #fbbf24; }
+        .frame-cyber { border: 2px solid #8b5cf6; box-shadow: 0 0 10px #8b5cf6; border-radius: 0; }
+        
+        .vip-silver { color: #e2e8f0; }
+        .vip-gold { color: #fbbf24; text-shadow: 0 0 5px rgba(251, 191, 36, 0.5); }
+        .vip-platinum { color: #22d3ee; text-shadow: 0 0 10px rgba(34, 211, 238, 0.5); }
     </style>
 </head>
-<body class="min-h-screen">
-    <div class="web3-grid"></div>
-    <div id="root" class="relative z-10"></div>
+<body>
+    <div class="cyber-grid-bg"></div>
+    <div id="root"></div>
 
     <script type="text/babel">
-        // --- FIREBASE CONFIG ---
-        let firebaseConfig = {
-            apiKey: "AIzaSyCXqkbLFskjFsKkpsf2FBucRiagg5XB8o4",
+        // --- CONFIG ---
+        const firebaseConfig = {
+            apiKey: "", // Provided by environment usually, blank here for template
             authDomain: "bingo-sato.firebaseapp.com",
             projectId: "bingo-sato",
             storageBucket: "bingo-sato.firebasestorage.app",
             messagingSenderId: "348261448088",
-            appId: "1:348261448088:web:61c19861c88b3c5094d3ed",
-            measurementId: "G-VDFPGKGN8Q"
+            appId: "1:348261448088:web:61c19861c88b3c5094d3ed"
         };
         
+        let finalConfig = firebaseConfig;
         if (typeof __firebase_config !== 'undefined') {
-            try { firebaseConfig = JSON.parse(__firebase_config); } catch(e) { console.error(e); }
+            try { finalConfig = JSON.parse(__firebase_config); } catch(e){}
         }
         
-        let APP_ID = 'sato-arcade-main-db';
-        if (typeof __app_id !== 'undefined') APP_ID = __app_id;
-
-        const BGM_URL = "https://cdn.pixabay.com/download/audio/2022/03/15/audio_b299e56312.mp3?filename=cyberpunk-city-11000.mp3";
-
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) firebase.initializeApp(finalConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'sato-ultimate-v3';
 
-        const { useState, useEffect, useMemo, useRef, useCallback } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- CONSTANTS ---
-        const INITIAL_CREDITS = 1000;
-        
-        const VIP_LEVELS = {
-            NONE: { name: 'Free', color: 'text-slate-400', bonus: 1 },
-            SILVER: { name: 'Silver VIP', color: 'text-slate-200', border: 'border-slate-300', price: 3000, days: 30, bonus: 1.1 },
-            GOLD: { name: 'Gold VIP', color: 'text-yellow-400', border: 'border-yellow-500', price: 8000, days: 30, bonus: 1.2 },
-            PLATINUM: { name: 'Platinum VIP', color: 'text-cyan-400', border: 'border-cyan-400', price: 15000, days: 30, bonus: 1.5 }
-        };
-
-        const SHOP_ITEMS = [
-            { id: 'ticket_room', name: 'ตั๋วสร้างห้อง', type: 'consumable', price: 500, desc: 'ใช้สร้างห้องบิงโก 1 ครั้ง', icon: '🎫' },
-            { id: 'vip_silver', name: 'VIP Silver (30 วัน)', type: 'vip', level: 'SILVER', price: 3000, desc: '+10% Bonus', icon: '🥈' },
-            { id: 'vip_gold', name: 'VIP Gold (30 วัน)', type: 'vip', level: 'GOLD', price: 8000, desc: 'สร้างห้องฟรี, +20% Bonus', icon: '🥇' },
-            { id: 'vip_platinum', name: 'VIP Platinum (30 วัน)', type: 'vip', level: 'PLATINUM', price: 15000, desc: 'สร้างห้องฟรี, ชื่อสีพิเศษ, +50% Bonus', icon: '💎' },
-            { id: 'char_cat', name: 'Neko Bot', type: 'char', price: 2000, desc: 'หุ่นแมวน้อยน่ารัก', icon: '🐱' },
-            { id: 'frame_neon', name: 'กรอบนีออน', type: 'frame', price: 1000, desc: 'กรอบเรืองแสง', icon: '🖼️' },
-        ];
-
-        // --- ICONS (SVG) ---
-        const Icons = {
-            Home: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-            User: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-            Shop: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,
-            Trophy: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
-            Music: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>,
-            Bag: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
-            Robot: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>,
-            Star: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-            Ticket: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>,
-            Brain: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-4z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-4z"/></svg>,
-            Run: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
-            Bingo: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
-        };
-
-        // --- AUDIO ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const playSfx = (type) => {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            const now = audioCtx.currentTime;
-            
-            if (type === 'click') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now); osc.stop(now + 0.1);
-            } else if (type === 'coin') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(1000, now); osc.frequency.linearRampToValueAtTime(1500, now + 0.1);
-                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.2);
-                osc.start(now); osc.stop(now + 0.2);
-            } else if (type === 'win') {
-                osc.type = 'square'; 
-                osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554, now + 0.1); osc.frequency.setValueAtTime(659, now + 0.2);
-                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.6);
-                osc.start(now); osc.stop(now + 0.6);
-            } else if (type === 'jump') {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(300, now + 0.15);
-                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.15);
-                osc.start(now); osc.stop(now + 0.15);
+        // --- SOUND ENGINE ---
+        const SoundEngine = {
+            ctx: new (window.AudioContext || window.webkitAudioContext)(),
+            play(type) {
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                const now = this.ctx.currentTime;
+                
+                switch(type) {
+                    case 'hover':
+                        osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(300, now+0.05);
+                        gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now+0.1);
+                        break;
+                    case 'click':
+                        osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(100, now+0.1);
+                        gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.1);
+                        break;
+                    case 'win':
+                        osc.type = 'triangle'; osc.frequency.setValueAtTime(500, now); osc.frequency.linearRampToValueAtTime(1000, now+0.2);
+                        gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.4);
+                        break;
+                    case 'error':
+                        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now);
+                        gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now+0.3);
+                        break;
+                }
+                osc.start(now); osc.stop(now+0.5);
             }
         };
 
-        // --- UTILS ---
-        const getVipStatus = (user) => {
-            if (!user.vipLevel || !user.vipExpires) return VIP_LEVELS.NONE;
-            const now = new Date();
-            const expire = user.vipExpires.toDate();
-            if (now > expire) return VIP_LEVELS.NONE;
-            return VIP_LEVELS[user.vipLevel] || VIP_LEVELS.NONE;
-        };
+        const Icon = ({ name, size = 20, className }) => <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
 
-        const formatDate = (timestamp) => {
-            if (!timestamp) return '-';
-            return new Date(timestamp.toDate()).toLocaleDateString('th-TH');
-        };
+        // --- SHOP ITEMS ---
+        const SHOP_ITEMS = [
+            { id: 'frame_neon', name: 'กรอบนีออน', type: 'frame', price: 2000, desc: 'กรอบเรืองแสงสีฟ้า', class: 'frame-neon' },
+            { id: 'frame_gold', name: 'กรอบทองคำ', type: 'frame', price: 5000, desc: 'กรอบทองหรูหรา', class: 'frame-gold' },
+            { id: 'frame_cyber', name: 'กรอบไซเบอร์', type: 'frame', price: 3000, desc: 'กรอบเหลี่ยม Cyberpunk', class: 'frame-cyber' },
+            { id: 'char_bot', name: 'หุ่นยนต์ซาโตะ', type: 'char', price: 1000, desc: 'ตัวละครเริ่มต้น', icon: '🤖' },
+            { id: 'char_alien', name: 'เอเลี่ยน', type: 'char', price: 2500, desc: 'ตัวละครต่างดาว', icon: '👽' },
+            { id: 'char_cat', name: 'แมวอวกาศ', type: 'char', price: 4000, desc: 'แมวน้อยน่ารัก', icon: '🐱' },
+            { id: 'vip_silver', name: 'VIP ระดับเงิน', type: 'vip', price: 10000, rank: 'SILVER', desc: 'สถานะ VIP ระดับเงิน' },
+            { id: 'vip_gold', name: 'VIP ระดับทอง', type: 'vip', price: 50000, rank: 'GOLD', desc: 'สถานะ VIP ระดับทอง' },
+        ];
 
-        // --- SUB-COMPONENTS ---
-
-        function InventoryModal({ userData, userProfile, db, onClose }) {
-            const equipItem = async (type, id) => {
-                playSfx('click');
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ [`equipped.${type}`]: id });
-            };
-
-            const inventoryItems = SHOP_ITEMS.filter(i => (userData.inventory || []).includes(i.id));
-            const ticketCount = (userData.inventory || []).filter(x => x === 'ticket_room').length;
+        // --- AUTH COMPONENT (MODAL) ---
+        const AuthModal = ({ onClose, onLogin, loading }) => {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const isAdmin = username.toLowerCase() === 'admin';
 
             return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="glass-panel w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
-                        <div className="p-4 border-b border-glass-border flex justify-between items-center bg-white/5">
-                            <h2 className="text-xl font-tech font-bold text-neon-purple flex items-center gap-2"><Icons.Bag className="w-5 h-5"/> กระเป๋าของฉัน</h2>
-                            <button onClick={onClose} className="text-red-400 hover:text-white">✕</button>
+                <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 animate-fade-in">
+                    <div className="w-full max-w-sm p-8 glass-card rounded-2xl animate-slide-up border border-brand-accent/20 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4">
+                            <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
                         </div>
-                        <div className="p-4 overflow-y-auto custom-scroll space-y-4">
-                            {/* Tickets Section */}
-                            <div className="bg-white/5 p-3 rounded-xl border border-white/10 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="text-2xl">🎫</div>
-                                    <div>
-                                        <div className="font-bold text-white text-sm">ตั๋วสร้างห้อง</div>
-                                        <div className="text-xs text-slate-400">ใช้สำหรับสร้างห้องบิงโก</div>
-                                    </div>
-                                </div>
-                                <div className="text-xl font-mono text-neon-blue font-bold">x{ticketCount}</div>
-                            </div>
-
-                            {/* Other Items */}
-                            <div className="grid grid-cols-2 gap-3">
-                                {inventoryItems.filter(i => i.type !== 'consumable').map(item => {
-                                    const isEquipped = userData.equipped?.[item.type] === item.id;
-                                    return (
-                                        <div key={item.id} className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${isEquipped ? 'bg-neon-blue/10 border-neon-blue' : 'bg-white/5 border-white/10'}`}>
-                                            <div className="text-3xl drop-shadow-lg">{item.icon}</div>
-                                            <div className="text-xs font-bold text-slate-200">{item.name}</div>
-                                            {item.type !== 'vip' && (
-                                                <button onClick={() => equipItem(item.type, item.id)} className={`text-[10px] px-3 py-1 rounded-full w-full font-bold ${isEquipped ? 'bg-neon-blue text-black' : 'bg-white/10 hover:bg-white/20'}`}>
-                                                    {isEquipped ? 'สวมใส่อยู่' : 'สวมใส่'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            {inventoryItems.length === 0 && ticketCount === 0 && <div className="text-center text-slate-500 py-10">ว่างเปล่า... ไปช้อปปิ้งกันเถอะ!</div>}
+                        <div className="text-center mb-8">
+                            <h1 className="text-4xl font-cyber font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-accent to-white tracking-tighter">เข้าสู่ระบบ</h1>
+                            <p className="text-slate-500 text-xs font-thai mt-2">พิมพ์ชื่อเพื่อลงทะเบียนหรือเข้าใช้งาน</p>
                         </div>
+                        <form onSubmit={(e)=>{e.preventDefault(); onLogin(username, password)}} className="space-y-4">
+                            <div className="relative group">
+                                <Icon name="user" className="absolute left-3 top-3 text-slate-500 group-focus-within:text-brand-accent" size={18}/>
+                                <input type="text" placeholder="ชื่อผู้ใช้งาน (Username)" className="input-field w-full pl-10 pr-4 py-3 rounded-lg font-thai text-sm" value={username} onChange={e=>setUsername(e.target.value)} autoFocus />
+                            </div>
+                            <div className={`transition-all duration-300 overflow-hidden ${isAdmin ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                <input type="password" placeholder="รหัสผ่านแอดมิน" className="input-field w-full pl-10 pr-4 py-3 rounded-lg font-mono text-sm border-red-500/50" value={password} onChange={e=>setPassword(e.target.value)} />
+                            </div>
+                            <button disabled={loading || !username} className="w-full py-3 bg-white text-black font-bold font-thai text-lg rounded-lg hover:bg-brand-accent hover:scale-[1.02] transition-all disabled:opacity-50">
+                                {loading ? 'กำลังเชื่อมต่อ...' : 'ยืนยัน'}
+                            </button>
+                        </form>
                     </div>
                 </div>
             );
-        }
-
-        function ShopModal({ userData, userProfile, db, currentAppId, onClose }) {
-            const buyItem = async (item) => {
-                playSfx('click');
-                if (userData.credits < item.price) return alert('เงินไม่พอครับ!');
-                
-                try {
-                    const userRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid);
-                    
-                    if (item.type === 'vip') {
-                        // VIP Logic: Add days based on current expiry or now
-                        let newExpire = new Date();
-                        const currentVip = getVipStatus(userData);
-                        
-                        // If upgrading or extending same level
-                        if (userData.vipExpires && userData.vipExpires.toDate() > new Date()) {
-                             newExpire = userData.vipExpires.toDate();
-                        }
-                        newExpire.setDate(newExpire.getDate() + item.days);
-
-                        await userRef.update({
-                            credits: firebase.firestore.FieldValue.increment(-item.price),
-                            vipLevel: item.level,
-                            vipExpires: firebase.firestore.Timestamp.fromDate(newExpire)
-                        });
-                    } else {
-                        // Normal Item / Consumable
-                        await userRef.update({
-                            credits: firebase.firestore.FieldValue.increment(-item.price),
-                            inventory: firebase.firestore.FieldValue.arrayUnion(item.id)
-                        });
-                    }
-                    playSfx('win');
-                    alert(`ซื้อ ${item.name} เรียบร้อย!`);
-                } catch (e) {
-                    console.error(e);
-                    alert('เกิดข้อผิดพลาด');
-                }
-            };
-
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-zoom-in">
-                    <div className="glass-panel w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
-                        <div className="p-5 border-b border-glass-border flex justify-between items-center bg-white/5">
-                            <div>
-                                <h2 className="text-2xl font-tech font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple">NFT MARKETPLACE</h2>
-                                <p className="text-xs text-slate-400 tracking-widest uppercase">Select your upgrades</p>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="px-4 py-2 rounded-full bg-black/40 border border-white/10 font-mono text-neon-green">
-                                    💰 {userData.credits.toLocaleString()}
-                                </div>
-                                <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500/50 transition-colors">✕</button>
-                            </div>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 custom-scroll">
-                            {SHOP_ITEMS.map(item => (
-                                <div key={item.id} className="nft-card p-4 rounded-2xl flex flex-col gap-3 group">
-                                    <div className="h-32 bg-black/30 rounded-xl flex items-center justify-center text-6xl group-hover:scale-110 transition-transform">
-                                        {item.icon}
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between items-start">
-                                            <h3 className="font-bold text-white group-hover:text-neon-blue transition-colors">{item.name}</h3>
-                                            <span className="text-xs px-2 py-1 rounded bg-white/10 text-slate-300">{item.type.toUpperCase()}</span>
-                                        </div>
-                                        <p className="text-xs text-slate-400 mt-1 h-8">{item.desc}</p>
-                                    </div>
-                                    <button onClick={() => buyItem(item)} className="mt-auto w-full py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-neon-blue/20 hover:border-neon-blue hover:text-white transition-all flex items-center justify-center gap-2">
-                                        <span>💎</span> {item.price.toLocaleString()}
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        }
+        };
 
         // --- GAMES ---
-
-        // 1. MEMORY MATCH (Icons Version)
-        function MemoryMatch({ userData, userProfile, db, updateCredits, onClose }) {
-            const [cards, setCards] = useState([]);
-            const [turns, setTurns] = useState(0);
-            const [choiceOne, setChoiceOne] = useState(null);
-            const [choiceTwo, setChoiceTwo] = useState(null);
-            const [disabled, setDisabled] = useState(false);
-            const [score, setScore] = useState(0);
-            const [gameState, setGameState] = useState('start');
-
-            // ใช้ SVG Component หรือ Emoji ที่ชัดเจน
-            const cardIcons = ['🚀', '🛸', '🤖', '👾', '💎', '🧬', '🔮', '🔋'];
-
-            const shuffleCards = () => {
-                // เลือก 6 คู่
-                const selected = cardIcons.slice(0, 6);
-                const shuffledCards = [...selected, ...selected]
-                    .sort(() => Math.random() - 0.5)
-                    .map((icon) => ({ icon, id: Math.random(), matched: false }));
-                
-                setChoiceOne(null);
-                setChoiceTwo(null);
-                setCards(shuffledCards);
-                setTurns(0);
-                setScore(0);
-                setGameState('playing');
-                playSfx('click');
-            };
-
-            const handleChoice = (card) => {
-                if (disabled) return;
-                playSfx('click');
-                choiceOne ? setChoiceTwo(card) : setChoiceOne(card);
-            };
-
-            useEffect(() => {
-                if (choiceOne && choiceTwo) {
-                    setDisabled(true);
-                    if (choiceOne.icon === choiceTwo.icon) {
-                        setCards(prev => prev.map(c => (c.icon === choiceOne.icon ? { ...c, matched: true } : c)));
-                        setScore(prev => prev + 100);
-                        playSfx('coin');
-                        resetTurn();
-                    } else {
-                        setTimeout(() => resetTurn(), 1000);
-                    }
-                }
-            }, [choiceOne, choiceTwo]);
-
-            const resetTurn = () => {
-                setChoiceOne(null); setChoiceTwo(null); setTurns(prev => prev + 1); setDisabled(false);
-            };
-
-            useEffect(() => {
-                if (cards.length > 0 && cards.every(c => c.matched)) {
-                    setGameState('won'); playSfx('win');
-                    // Save Highscore
-                    const finalScore = Math.max(0, score - (turns * 10));
-                    if (finalScore > (userData.highscores?.memory || 0)) {
-                        db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ 'highscores.memory': finalScore });
-                    }
-                }
-            }, [cards, score]);
-
-            return (
-                <div className="glass-panel p-6 h-full flex flex-col items-center justify-center animate-zoom-in relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent"></div>
-                    <div className="flex justify-between w-full mb-6 relative z-10">
-                        <h2 className="text-2xl font-tech font-bold text-neon-purple flex items-center gap-2"><Icons.Brain className="w-6 h-6"/> MEMORY PROTOCOL</h2>
-                        <button onClick={onClose} className="text-xs text-slate-400 hover:text-white border border-white/20 px-3 py-1 rounded-full">EXIT</button>
-                    </div>
-
-                    {gameState === 'start' && (
-                        <div className="text-center z-10">
-                            <div className="text-6xl mb-4 animate-bounce">🧠</div>
-                            <h3 className="text-xl font-bold text-white mb-2">ทดสอบความจำ</h3>
-                            <p className="text-slate-400 mb-6 text-sm">จับคู่โฮโลแกรมให้ครบเพื่อรับเหรียญรางวัล</p>
-                            <button onClick={shuffleCards} className="btn-cyber px-10 py-3 text-lg">START GAME</button>
-                        </div>
-                    )}
-
-                    {gameState === 'playing' && (
-                        <div className="w-full max-w-md z-10">
-                            <div className="flex justify-between text-xs font-mono text-neon-blue mb-4">
-                                <span>TURNS: {turns}</span>
-                                <span>SCORE: {score}</span>
-                            </div>
-                            <div className="grid grid-cols-4 gap-3">
-                                {cards.map(card => (
-                                    <div key={card.id} className="aspect-square card-container cursor-pointer" onClick={() => !card.matched && handleChoice(card)}>
-                                        <div className={`card-inner ${(card === choiceOne || card === choiceTwo || card.matched) ? 'card-flipped' : ''}`}>
-                                            <div className="card-front">
-                                                <div className="w-8 h-8 rounded-full bg-slate-700/50 flex items-center justify-center text-slate-500 text-xs">?</div>
-                                            </div>
-                                            <div className="card-back text-3xl drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
-                                                {card.icon}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {gameState === 'won' && (
-                        <div className="text-center z-10 bg-black/60 p-8 rounded-2xl border border-neon-green backdrop-blur-xl animate-fade-in">
-                            <h3 className="text-3xl font-bold text-neon-green mb-2">MISSION COMPLETE</h3>
-                            <p className="text-white mb-6 font-mono text-xl">Score: {Math.max(0, score - (turns * 10))}</p>
-                            <button onClick={async () => { await updateCredits(Math.floor(Math.max(0, score - turns*10)/2)); onClose(); }} className="px-8 py-3 bg-neon-green text-black font-bold rounded-lg hover:shadow-[0_0_20px_#0aff68]">COLLECT REWARD</button>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        // 2. CYBER RUNNER (Cute Bot Version)
-        function CyberRunner({ userData, db, userProfile, updateCredits, onClose }) {
-            const canvasRef = useRef(null);
-            const [gameState, setGameState] = useState('menu');
-            const [score, setScore] = useState(0);
-            
-            // Draw Cute Bot Function
-            const drawBot = (ctx, x, y, color) => {
-                // Body (Rounded Rect)
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.roundRect(x, y, 30, 25, 5);
-                ctx.fill();
-                // Screen (Face)
-                ctx.fillStyle = '#000';
-                ctx.beginPath();
-                ctx.roundRect(x + 5, y + 5, 20, 15, 2);
-                ctx.fill();
-                // Eyes (Cute)
-                ctx.fillStyle = '#0aff68';
-                ctx.shadowColor = '#0aff68'; ctx.shadowBlur = 5;
-                ctx.fillRect(x + 8, y + 9, 4, 4);
-                ctx.fillRect(x + 18, y + 9, 4, 4);
-                ctx.shadowBlur = 0;
-                // Antenna
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.moveTo(x + 15, y); ctx.lineTo(x + 15, y - 5); ctx.stroke();
-                ctx.beginPath(); ctx.arc(x + 15, y - 7, 2, 0, Math.PI*2); ctx.fill();
-                // Wheels/Legs (Simple)
-                ctx.fillStyle = '#333';
-                ctx.beginPath(); ctx.arc(x + 8, y + 25, 4, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(x + 22, y + 25, 4, 0, Math.PI*2); ctx.fill();
-            };
-
-            const startGame = () => { setGameState('playing'); setScore(0); playSfx('click'); };
-
-            useEffect(() => {
-                if (gameState !== 'playing') return;
-                const canvas = canvasRef.current;
-                const ctx = canvas.getContext('2d');
-                let frameId;
-                let frames = 0;
-                let speed = 5;
-                let localScore = 0;
-
-                // Game Objects
-                const player = { x: 50, y: 220, w: 30, h: 30, dy: 0, jumpPower: -10, grounded: true, baseY: 220 };
-                let obstacles = [];
-                let coins = [];
-                let bgOffset = 0;
-
-                // Loop
-                const loop = () => {
-                    frameId = requestAnimationFrame(loop);
-                    frames++;
-                    ctx.clearRect(0,0,600,300);
-
-                    // --- DRAW BACKGROUND (Cyber City) ---
-                    const grad = ctx.createLinearGradient(0,0,0,300);
-                    grad.addColorStop(0, '#050510'); grad.addColorStop(1, '#1a1a2e');
-                    ctx.fillStyle = grad; ctx.fillRect(0,0,600,300);
-
-                    // Parallax Skyline
-                    bgOffset -= 0.5;
-                    ctx.fillStyle = 'rgba(0, 243, 255, 0.1)';
-                    for(let i=0; i<10; i++) {
-                        let h = 50 + Math.sin(i*123)*30;
-                        let x = (i * 80 + bgOffset) % 800;
-                        if(x < -80) x += 800;
-                        ctx.fillRect(x, 300 - 50 - h, 40, h);
-                    }
-
-                    // Floor Grid
-                    ctx.save();
-                    ctx.strokeStyle = 'rgba(188, 19, 254, 0.3)';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    for(let i=0; i<10; i++) {
-                        let x = ((frames * speed) % 50) - i*50 + 600; 
-                        ctx.moveTo(0, 250 + i*5); ctx.lineTo(600, 250 + i*5); // Horizontal
-                    }
-                    ctx.stroke();
-                    ctx.fillStyle = '#111'; ctx.fillRect(0, 250, 600, 50); // Solid floor
-                    ctx.strokeStyle = '#bc13fe'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0,250); ctx.lineTo(600,250); ctx.stroke();
-                    ctx.restore();
-
-                    // --- UPDATE PLAYER ---
-                    if (!player.grounded) {
-                        player.dy += 0.5; // Gravity
-                        player.y += player.dy;
-                        if (player.y >= player.baseY) {
-                            player.y = player.baseY; player.dy = 0; player.grounded = true;
-                        }
-                    }
-                    
-                    // Draw Cute Bot
-                    const botColor = (userData.equipped?.char === 'char_cat') ? '#ff79c6' : '#00f3ff';
-                    drawBot(ctx, player.x, player.y, botColor);
-
-                    // --- OBSTACLES ---
-                    if (frames % 100 === 0) {
-                        obstacles.push({ x: 600, y: 225, w: 20, h: 25, type: 'spike' });
-                        speed += 0.05;
-                    }
-                    for (let i=0; i<obstacles.length; i++) {
-                        let o = obstacles[i];
-                        o.x -= speed;
-                        // Draw Spike
-                        ctx.fillStyle = '#ff5555';
-                        ctx.beginPath(); ctx.moveTo(o.x, o.y + o.h); ctx.lineTo(o.x + o.w/2, o.y); ctx.lineTo(o.x + o.w, o.y + o.h); ctx.fill();
-                        
-                        // Collision
-                        if (player.x < o.x + o.w - 5 && player.x + player.w > o.x + 5 && player.y < o.y + o.h && player.y + player.h > o.y) {
-                            setGameState('over'); setScore(localScore); playSfx('win'); // fail sound actually
-                            // Save score logic here
-                            if(localScore > (userData.highscores?.runner || 0)) {
-                                db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({ 'highscores.runner': localScore });
-                            }
-                            cancelAnimationFrame(frameId); return;
-                        }
-                        if (o.x + o.w < 0) { obstacles.splice(i,1); i--; localScore+=10; setScore(localScore); }
-                    }
-
-                    // --- COINS ---
-                    if (frames % 150 === 0) {
-                        coins.push({ x: 600, y: 150 + Math.random()*50, collected: false });
-                    }
-                    for (let i=0; i<coins.length; i++) {
-                        let c = coins[i];
-                        if(c.collected) continue;
-                        c.x -= speed;
-                        // Draw Coin
-                        ctx.fillStyle = '#f1fa8c'; ctx.beginPath(); ctx.arc(c.x, c.y, 8, 0, Math.PI*2); ctx.fill();
-                        ctx.fillStyle = 'orange'; ctx.font='10px monospace'; ctx.fillText('$', c.x-3, c.y+3);
-
-                        // Collect
-                        let dx = player.x + 15 - c.x; let dy = player.y + 15 - c.y;
-                        if (Math.sqrt(dx*dx + dy*dy) < 25) {
-                            c.collected = true; localScore += 50; setScore(localScore); playSfx('coin');
-                        }
-                        if (c.x < 0) { coins.splice(i,1); i--; }
-                    }
-
-                    // Score UI
-                    ctx.fillStyle = 'white'; ctx.font = '20px Rajdhani'; ctx.fillText(`SCORE: ${localScore}`, 20, 40);
-                };
-                loop();
-
-                const handleInput = () => { if (player.grounded) { player.dy = player.jumpPower; player.grounded = false; playSfx('jump'); } };
-                window.addEventListener('keydown', handleInput);
-                canvas.addEventListener('touchstart', handleInput);
-                return () => { 
-                    window.removeEventListener('keydown', handleInput); 
-                    canvas.removeEventListener('touchstart', handleInput); 
-                    cancelAnimationFrame(frameId); 
-                };
-            }, [gameState]);
-
-            return (
-                <div className="glass-panel p-6 h-full flex flex-col items-center justify-center animate-zoom-in">
-                    <div className="flex justify-between w-full mb-2">
-                        <h2 className="text-xl font-tech text-neon-blue flex items-center gap-2"><Icons.Run className="w-6 h-6"/> CYBER RUN 3.0</h2>
-                        <button onClick={onClose} className="text-slate-400 hover:text-white">EXIT</button>
-                    </div>
-                    
-                    <div className="relative border-2 border-neon-blue/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(0,243,255,0.1)]">
-                        {gameState === 'menu' && (
-                            <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10">
-                                <div className="text-4xl mb-4 animate-bounce">🤖</div>
-                                <h3 className="text-2xl font-bold text-white mb-6">READY TO RUN?</h3>
-                                <button onClick={startGame} className="btn-cyber px-8 py-2 rounded text-lg">START MISSION</button>
-                            </div>
-                        )}
-                        {gameState === 'over' && (
-                            <div className="absolute inset-0 bg-red-900/90 flex flex-col items-center justify-center z-10">
-                                <h3 className="text-3xl font-bold text-white mb-2">CRASHED!</h3>
-                                <div className="text-4xl font-mono text-yellow-400 mb-6">{score}</div>
-                                <button onClick={async () => { await updateCredits(Math.floor(score/10)); onClose(); }} className="px-6 py-2 bg-white text-black font-bold rounded hover:bg-slate-200">CLAIM REWARD</button>
-                            </div>
-                        )}
-                        <canvas ref={canvasRef} width="600" height="300" className="bg-[#050510] block w-full max-w-[600px]"></canvas>
-                    </div>
-                </div>
-            );
-        }
-
-        // 3. BINGO ROOM & LOBBY (Fix Ticket Logic)
-        function BingoLobby({ userProfile, userData, db, onClose, onJoinRoom }) {
+        
+        // 1. Bingo (Fixed Public Path & Removed OrderBy)
+        const BingoLobby = ({ user, db, onExit, updateCredits }) => {
             const [rooms, setRooms] = useState([]);
-            const [creating, setCreating] = useState(false);
-            const [roomName, setRoomName] = useState('');
-
+            const [activeRoom, setActiveRoom] = useState(null);
+            
             useEffect(() => {
-                return db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms')
-                    .orderBy('timestamp', 'desc').limit(20).onSnapshot(s => {
-                        setRooms(s.docs.map(d => ({id:d.id, ...d.data()})));
-                    });
-            }, []);
+                if(activeRoom) return;
+                
+                // FIX: Remove orderBy to prevent index errors in this environment
+                // Fetch all and sort client-side
+                const unsub = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms')
+                    .onSnapshot(
+                        snap => {
+                            const data = snap.docs.map(d => ({id:d.id, ...d.data()}));
+                            // Client-side sort: newest first
+                            data.sort((a,b) => (b.created?.seconds || 0) - (a.created?.seconds || 0));
+                            setRooms(data.slice(0, 20)); // Limit client-side
+                        },
+                        error => {
+                            console.error("Bingo Lobby Error:", error);
+                        }
+                    );
+                return () => unsub();
+            }, [activeRoom]);
 
-            const handleCreate = async () => {
-                if (!roomName) return alert('ใส่ชื่อห้องด้วยครับ');
-                playSfx('click');
-                const vip = getVipStatus(userData);
-                const isFree = vip.level === 'GOLD' || vip.level === 'PLATINUM';
-                const hasTicket = (userData.inventory || []).includes('ticket_room');
-
-                if (!isFree && !hasTicket) return alert('ไม่มีตั๋วสร้างห้อง! ซื้อได้ที่ร้านค้าครับ');
-
-                setCreating(true);
+            const createRoom = async () => {
+                const name = prompt("ตั้งชื่อห้องของคุณ:"); if(!name) return;
                 try {
-                    // Deduct ticket if not free
-                    if (!isFree) {
-                        await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({
-                            inventory: firebase.firestore.FieldValue.arrayRemove('ticket_room')
-                        });
-                    }
-                    // Create Room
-                    await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms').add({
-                        name: roomName, hostId: userProfile.uid, hostName: userData.username, 
-                        currentNumber: null, history: [], timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    const ref = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms').add({
+                        name, host: user.username, created: firebase.firestore.FieldValue.serverTimestamp(), numbers: [], status: 'waiting'
                     });
-                    setCreating(false);
-                    alert('สร้างห้องสำเร็จ!');
-                } catch(e) { console.error(e); setCreating(false); }
+                    setActiveRoom(ref.id);
+                } catch(e) { console.error(e); alert("สร้างห้องไม่ได้: " + e.message); }
             };
 
+            if(activeRoom) return <BingoRoom user={user} db={db} roomId={activeRoom} updateCredits={updateCredits} onLeave={()=>setActiveRoom(null)} />;
+
             return (
-                <div className="glass-panel p-6 h-full flex flex-col animate-fade-in">
+                <div className="h-full flex flex-col animate-slide-up">
                     <div className="flex justify-between items-center mb-6">
-                        <button onClick={onClose} className="text-slate-400 hover:text-white flex items-center gap-2"><Icons.Home className="w-4 h-4"/> LOBBY</button>
-                        <h2 className="text-2xl font-tech font-bold text-neon-blue">NEON BINGO</h2>
+                        <h2 className="text-2xl font-thai font-bold text-brand-accent">ห้องโถงบิงโก</h2>
+                        <button onClick={onExit} className="text-slate-400 hover:text-white flex items-center gap-1 text-sm"><Icon name="arrow-left" size={16}/> กลับ</button>
                     </div>
-
-                    <div className="bg-white/5 p-4 rounded-xl mb-4 border border-white/10 flex gap-2">
-                        <input value={roomName} onChange={e=>setRoomName(e.target.value)} placeholder="ตั้งชื่อห้อง..." className="flex-1 bg-black/50 border border-white/20 rounded px-3 text-white focus:border-neon-blue outline-none" />
-                        <button onClick={handleCreate} disabled={creating} className="bg-neon-blue/20 border border-neon-blue text-neon-blue px-4 rounded hover:bg-neon-blue hover:text-black transition-all text-sm font-bold">
-                            {creating ? 'CREATING...' : '+ สร้างห้อง'}
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto custom-scroll space-y-2">
+                    <button onClick={createRoom} className="w-full py-4 mb-4 bg-gradient-to-r from-brand-primary to-brand-secondary rounded-xl font-bold font-thai text-white hover:scale-[1.01] transition-transform shadow-lg">+ สร้างห้องใหม่</button>
+                    <div className="space-y-2 overflow-y-auto custom-scroll pr-2 flex-1">
                         {rooms.map(r => (
-                            <div key={r.id} onClick={()=>onJoinRoom(r.id)} className="p-4 bg-gradient-to-r from-white/5 to-transparent border border-white/5 rounded-xl hover:border-neon-purple cursor-pointer transition-all group">
-                                <div className="flex justify-between">
-                                    <div className="font-bold text-lg text-slate-200 group-hover:text-neon-purple">{r.name}</div>
-                                    <div className="text-xs px-2 py-1 bg-black/30 rounded text-neon-green">OPEN</div>
+                            <div key={r.id} onClick={()=>setActiveRoom(r.id)} className="p-4 bg-white/5 border border-white/5 rounded-xl hover:border-brand-accent cursor-pointer flex justify-between items-center group">
+                                <div>
+                                    <div className="font-bold text-white group-hover:text-brand-accent font-thai">{r.name}</div>
+                                    <div className="text-xs text-slate-500 font-thai">เจ้าของ: {r.host}</div>
                                 </div>
-                                <div className="text-xs text-slate-500 mt-1">HOST: {r.hostName}</div>
+                                <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded font-thai">เข้าร่วม</span>
                             </div>
                         ))}
-                        {rooms.length === 0 && <div className="text-center text-slate-600 mt-10">ยังไม่มีห้อง... สร้างเลย!</div>}
+                        {rooms.length === 0 && <div className="text-center text-slate-500 mt-10 font-thai">ยังไม่มีห้อง... สร้างเลย!</div>}
                     </div>
                 </div>
             );
-        }
+        };
 
-        // --- BINGO ROOM (Restored) ---
-        function BingoRoom({ userProfile, userData, db, currentAppId, updateCredits, roomId, onLeave }) {
+        const BingoRoom = ({ user, db, roomId, updateCredits, onLeave }) => {
             const [gameState, setGameState] = useState(null);
-            const [playerCard, setPlayerCard] = useState([]);
-            const [hasClaimed, setHasClaimed] = useState(false);
-            const [isAutoPlaying, setIsAutoPlaying] = useState(false);
-            const autoPlayRef = useRef(null);
+            const [board, setBoard] = useState([]);
             
-            const roomRef = useMemo(() => db.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('bingo_rooms').doc(roomId), [roomId]);
-
             useEffect(() => {
-                const unsub = roomRef.onSnapshot(doc => {
-                    if (doc.exists) {
-                        const data = doc.data();
-                        if(!data.history) data.history = [];
-                        setGameState(data);
-                    }
-                }, err => console.log(err));
+                const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms').doc(roomId);
+                const unsub = ref.onSnapshot(
+                    doc => { 
+                        if(doc.exists) setGameState(doc.data()); 
+                        else onLeave(); 
+                    },
+                    err => console.error("Room Error:", err)
+                );
                 return () => unsub();
             }, [roomId]);
 
-            const generateNumber = async () => {
-                if (userProfile.uid !== gameState.hostId) return;
-                const available = Array.from({length: 75}, (_, i) => i + 1).filter(n => !gameState.history.includes(n));
-                if (available.length === 0) { setIsAutoPlaying(false); return; }
-                const newNum = available[Math.floor(Math.random() * available.length)];
-                await roomRef.update({ currentNumber: newNum, history: [newNum, ...gameState.history] });
-                playSfx('coin');
+            const drawNumber = async () => {
+                if(!gameState) return;
+                let num; do { num = Math.floor(Math.random()*75)+1; } while(gameState.numbers?.includes(num));
+                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms').doc(roomId).update({
+                    numbers: firebase.firestore.FieldValue.arrayUnion(num), lastNumber: num, status: 'playing'
+                });
             };
 
-            const toggleAutoPlay = () => {
-                if (isAutoPlaying) setIsAutoPlaying(false);
-                else { setIsAutoPlaying(true); generateNumber(); }
+            const initBoard = () => {
+                if(user.credits < 50) return alert("เครดิตไม่พอ!");
+                updateCredits(-50);
+                const newBoard = Array(5).fill(0).map((_,c) => {
+                    const min=c*15+1; const nums=new Set();
+                    while(nums.size<5) nums.add(Math.floor(Math.random()*(min+14-min+1))+min);
+                    return Array.from(nums);
+                });
+                newBoard[2][2] = 'FREE';
+                setBoard(newBoard);
             };
 
-            useEffect(() => {
-                if (isAutoPlaying) autoPlayRef.current = setInterval(generateNumber, 3500);
-                else clearInterval(autoPlayRef.current);
-                return () => clearInterval(autoPlayRef.current);
-            }, [isAutoPlaying]);
-
-            const buyCard = async () => {
-                if (userData.credits < 50) return alert("เงินไม่พอ");
-                await updateCredits(-50);
-                const card = [];
-                const cols = [{s:1,e:15}, {s:16,e:30}, {s:31,e:45}, {s:46,e:60}, {s:61,e:75}];
-                for(let c=0; c<5; c++) {
-                    const colNums = [];
-                    while(colNums.length < 5) {
-                        const num = Math.floor(Math.random() * (cols[c].e - cols[c].s + 1)) + cols[c].s;
-                        if(!colNums.includes(num)) colNums.push(num);
-                    }
-                    card.push(colNums);
-                }
-                card[2][2] = 'FREE';
-                setPlayerCard(card);
-                setHasClaimed(false);
-                playSfx('click');
-            };
-
-            const checkBingo = useMemo(() => {
-                if (playerCard.length === 0 || !gameState) return false;
-                const isMarked = (r, c) => {
-                    const v = playerCard[c][r];
-                    return v === 'FREE' || gameState.history.includes(v);
-                };
-                for(let i=0; i<5; i++) {
-                    if([0,1,2,3,4].every(x => isMarked(i, x))) return true;
-                    if([0,1,2,3,4].every(x => isMarked(x, i))) return true;
-                }
-                if([0,1,2,3,4].every(i => isMarked(i, i))) return true;
-                if([0,1,2,3,4].every(i => isMarked(i, 4-i))) return true;
-                return false;
-            }, [playerCard, gameState]);
-
-            useEffect(() => {
-                if (checkBingo && !hasClaimed) {
-                    confetti({ particleCount: 150 });
-                    updateCredits(200);
-                    setHasClaimed(true);
-                    playSfx('win');
-                }
-            }, [checkBingo]);
-
-            if(!gameState) return <div className="text-center mt-10 text-white">กำลังโหลดห้อง...</div>;
+            if(!gameState) return <div>Loading...</div>;
 
             return (
-                <div className="glass-panel p-6 h-full flex flex-col animate-zoom-in">
-                    <div className="flex justify-between items-center mb-4">
-                        <button onClick={onLeave} className="text-slate-400 hover:text-white text-xs flex items-center gap-1">← ออกจากห้อง</button>
-                        <span className="text-neon-blue font-bold font-tech text-lg">ROOM: {gameState.name}</span>
+                <div className="h-full flex flex-col">
+                    <div className="flex justify-between items-center mb-4 pb-4 border-b border-white/10">
+                        <button onClick={onLeave} className="text-xs text-slate-400 font-thai">ออกจากห้อง</button>
+                        <div className="text-3xl font-bold text-brand-accent">{gameState.lastNumber || '--'}</div>
+                        <div className="text-xs text-slate-400 font-thai">เจ้าของ: {gameState.host}</div>
                     </div>
-                    
-                    <div className="glass-panel p-8 text-center relative overflow-hidden mb-4 border border-neon-blue/30 shadow-[0_0_30px_rgba(0,243,255,0.1)]">
-                        <div className="absolute top-0 right-0 p-4 opacity-20"><Icons.Ticket className="w-16 h-16"/></div>
-                        <div className="text-8xl font-tech font-bold text-white drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]">{gameState.currentNumber || '--'}</div>
-                        <div className="text-xs text-neon-blue font-mono tracking-[0.3em] mt-2 uppercase">LUCKY NUMBER</div>
-                    </div>
-
-                    {userProfile.uid === gameState.hostId ? (
-                        <div className="glass-panel p-6 border-neon-purple/30 bg-neon-purple/5 mb-4">
-                            <div className="text-xs text-neon-purple mb-3 tracking-widest font-bold">HOST CONTROLS</div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button onClick={generateNumber} className="bg-white text-black font-bold py-3 rounded hover:scale-105 transition-transform">สุ่มตัวเลข</button>
-                                <button onClick={toggleAutoPlay} className={`border border-white/20 py-3 rounded transition-all font-bold ${isAutoPlaying ? 'bg-neon-green text-black animate-pulse' : 'text-slate-300'}`}>{isAutoPlaying ? 'STOP AUTO' : 'AUTO PLAY'}</button>
-                                <button onClick={() => {if(confirm('Reset Game?')) roomRef.update({currentNumber:null, history:[]})}} className="col-span-2 py-2 text-xs text-red-400 border border-red-500/30 rounded hover:bg-red-500/10">RESET BOARD</button>
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                        {board.length === 0 ? (
+                            <div className="text-center">
+                                <div className="text-6xl mb-4">🎫</div>
+                                <button onClick={initBoard} className="px-8 py-3 bg-brand-accent text-black font-bold font-thai rounded-full hover:scale-105 transition-transform">ซื้อตั๋ว (50 เครดิต)</button>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="grid grid-cols-5 gap-2 w-full max-w-[320px]">
+                                {['B','I','N','G','O'].map(l=><div key={l} className="text-center font-black text-brand-secondary">{l}</div>)}
+                                {board.map((col, c) => col.map((n, r) => {
+                                    const marked = n === 'FREE' || gameState.numbers?.includes(n);
+                                    return <div key={`${c}-${r}`} className={`aspect-square flex items-center justify-center rounded font-bold ${marked?'bg-brand-primary text-white shadow-lg':'bg-white/5 text-slate-500'}`}>{n==='FREE'?'★':n}</div>
+                                }))}
+                            </div>
+                        )}
+                    </div>
+                    {user.username === gameState.host && (
+                        <div className="mt-4"><button onClick={drawNumber} className="w-full py-4 bg-white text-black font-bold font-thai rounded-xl hover:bg-brand-accent">สุ่มตัวเลข</button></div>
+                    )}
+                </div>
+            );
+        };
+
+        // 2. Memory Match
+        const MemoryMatch = ({ updateCredits, onExit }) => {
+            const [cards, setCards] = useState([]);
+            const [turns, setTurns] = useState(0);
+            const [level, setLevel] = useState(null); // 4 or 6
+            const [flipped, setFlipped] = useState([]);
+            const [solved, setSolved] = useState([]);
+
+            const ICONS = ['🚀','🛸','👾','🤖','💎','⚡','🔥','🌟','🍀','🎵','🎮','🕹️','💿','💾','🔋','🔧','🔨','⚙️'];
+
+            const startGame = (size) => {
+                const numPairs = (size * size) / 2;
+                const gameIcons = ICONS.slice(0, numPairs);
+                const deck = [...gameIcons, ...gameIcons].sort(()=>Math.random()-0.5).map((icon, id)=>({id, icon}));
+                setCards(deck); setLevel(size); setTurns(0); setSolved([]); setFlipped([]);
+            };
+
+            const handleCardClick = (id) => {
+                if(flipped.length === 2 || flipped.includes(id) || solved.includes(id)) return;
+                const newFlipped = [...flipped, id];
+                setFlipped(newFlipped);
+                if(newFlipped.length === 2) {
+                    setTurns(t=>t+1);
+                    const [id1, id2] = newFlipped;
+                    if(cards[id1].icon === cards[id2].icon) {
+                        setSolved(prev => [...prev, id1, id2]);
+                        setFlipped([]);
+                        if(solved.length + 2 === cards.length) {
+                            setTimeout(() => {
+                                const reward = level === 4 ? 100 : 300;
+                                updateCredits(reward);
+                                alert(`ยินดีด้วย! คุณได้รับ +${reward} เครดิต`);
+                                setLevel(null);
+                            }, 500);
+                        }
+                    } else {
+                        setTimeout(() => setFlipped([]), 1000);
+                    }
+                }
+            };
+
+            if(!level) return (
+                <div className="h-full flex flex-col items-center justify-center gap-6 animate-slide-up">
+                    <h2 className="text-3xl font-thai font-bold text-brand-secondary">เกมจับคู่ภาพ</h2>
+                    <div className="grid grid-cols-2 gap-4 w-full px-8">
+                        <button onClick={()=>startGame(4)} className="p-6 bg-white/5 border border-white/10 rounded-xl hover:border-green-400 hover:text-green-400 transition-all">
+                            <div className="text-xl font-bold font-thai">ทั่วไป</div>
+                            <div className="text-xs text-slate-500 font-thai">ตาราง 4x4</div>
+                        </button>
+                        <button onClick={()=>startGame(6)} className="p-6 bg-white/5 border border-white/10 rounded-xl hover:border-red-400 hover:text-red-400 transition-all">
+                            <div className="text-xl font-bold font-thai">ยาก</div>
+                            <div className="text-xs text-slate-500 font-thai">ตาราง 6x6</div>
+                        </button>
+                    </div>
+                    <button onClick={onExit} className="text-slate-500 hover:text-white mt-4 font-thai">ออก</button>
+                </div>
+            );
+
+            return (
+                <div className="h-full flex flex-col items-center animate-fade-in">
+                    <div className="flex justify-between w-full mb-4">
+                        <button onClick={()=>setLevel(null)} className="text-xs text-slate-400 font-thai">ยอมแพ้</button>
+                        <div className="text-brand-accent font-thai">จำนวนครั้ง: {turns}</div>
+                    </div>
+                    <div className={`grid gap-2 w-full max-w-[400px] aspect-square ${level===4?'grid-cols-4':'grid-cols-6'}`}>
+                        {cards.map((c, i) => (
+                            <div key={i} onClick={()=>handleCardClick(i)} className={`
+                                rounded-lg flex items-center justify-center text-2xl cursor-pointer transition-all duration-300 transform
+                                ${flipped.includes(i) || solved.includes(i) ? 'bg-brand-primary rotate-y-180 text-white' : 'bg-white/10 hover:bg-white/20 text-transparent'}
+                            `}>
+                                {(flipped.includes(i) || solved.includes(i)) ? c.icon : '?'}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. Cyber Fly (Flappy Style)
+        const CyberFly = ({ updateCredits, onExit }) => {
+            const canvasRef = useRef(null);
+            const [playing, setPlaying] = useState(false);
+            const [score, setScore] = useState(0);
+            const [difficulty, setDifficulty] = useState(null); // 'easy', 'hard'
+
+            useEffect(() => {
+                if(!playing) return;
+                const cvs = canvasRef.current;
+                const ctx = cvs.getContext('2d');
+                let frames = 0;
+                let bird = { x: 50, y: 150, v: 0, r: 10 };
+                let pipes = [];
+                let loopId;
+                const gap = difficulty === 'hard' ? 80 : 120;
+                const speed = difficulty === 'hard' ? 3 : 2;
+
+                const loop = () => {
+                    frames++;
+                    ctx.fillStyle = '#000'; ctx.fillRect(0,0,300,400);
+                    
+                    // Bird
+                    bird.v += 0.15; bird.y += bird.v;
+                    ctx.fillStyle = '#06b6d4'; ctx.beginPath(); ctx.arc(bird.x, bird.y, bird.r, 0, Math.PI*2); ctx.fill();
+
+                    // Pipes
+                    if(frames % 120 === 0) {
+                        let h = Math.random() * (400 - gap - 100) + 50;
+                        pipes.push({ x: 300, top: h });
+                    }
+                    
+                    for(let i=0; i<pipes.length; i++) {
+                        let p = pipes[i];
+                        p.x -= speed;
+                        ctx.fillStyle = '#8b5cf6';
+                        ctx.fillRect(p.x, 0, 40, p.top);
+                        ctx.fillRect(p.x, p.top + gap, 40, 400 - p.top - gap);
+
+                        if(p.x + 40 < 0) { pipes.shift(); i--; setScore(s=>s+1); }
+
+                        // Collision
+                        if(
+                            bird.y - bird.r < 0 || bird.y + bird.r > 400 ||
+                            (bird.x + bird.r > p.x && bird.x - bird.r < p.x + 40 &&
+                            (bird.y - bird.r < p.top || bird.y + bird.r > p.top + gap))
+                        ) {
+                            setPlaying(false);
+                            const reward = score * (difficulty==='hard'?10:5);
+                            updateCredits(reward);
+                            alert(`จบเกม! คะแนน: ${score} (+${reward} เครดิต)`);
+                            cancelAnimationFrame(loopId);
+                            return;
+                        }
+                    }
+                    loopId = requestAnimationFrame(loop);
+                };
+                loopId = requestAnimationFrame(loop);
+                
+                const jump = () => bird.v = -3.5;
+                cvs.addEventListener('click', jump);
+                return () => { cvs.removeEventListener('click', jump); cancelAnimationFrame(loopId); }
+            }, [playing]);
+
+            if(!difficulty) return (
+                <div className="h-full flex flex-col items-center justify-center gap-6 animate-slide-up">
+                    <h2 className="text-3xl font-cyber text-brand-accent">CYBER FLY</h2>
+                    <div className="flex gap-4">
+                        <button onClick={()=>setDifficulty('easy')} className="px-6 py-3 bg-green-500/20 text-green-400 border border-green-500/50 rounded-xl hover:bg-green-500 hover:text-black font-thai">โหมดง่าย</button>
+                        <button onClick={()=>setDifficulty('hard')} className="px-6 py-3 bg-red-500/20 text-red-400 border border-red-500/50 rounded-xl hover:bg-red-500 hover:text-white font-thai">โหมดยาก</button>
+                    </div>
+                    <button onClick={onExit} className="text-slate-500 text-xs font-thai">กลับ</button>
+                </div>
+            );
+
+            return (
+                <div className="h-full flex flex-col items-center">
+                    {!playing ? (
+                         <div className="text-center mt-20">
+                             <div className="text-4xl font-bold text-white mb-4">{score}</div>
+                             <button onClick={()=>{setScore(0); setPlaying(true)}} className="px-8 py-4 bg-white text-black font-bold rounded-full font-thai">แตะเพื่อเริ่ม</button>
+                             <div className="mt-4"><button onClick={()=>setDifficulty(null)} className="text-xs text-slate-400 font-thai">เปลี่ยนโหมด</button></div>
+                         </div>
                     ) : (
-                        <div className="glass-panel p-6 text-center mb-4">
-                            {playerCard.length === 0 ? (
-                                <div className="py-8">
-                                    <button onClick={buyCard} className="btn-cyber px-8 py-4 text-xl rounded-xl shadow-lg">ซื้อตั๋ว (50)</button>
-                                    <p className="text-xs text-slate-500 mt-2">ลุ้นรับรางวัล 200 เหรียญ</p>
+                        <div className="relative">
+                            <canvas ref={canvasRef} width="300" height="400" className="border border-white/10 rounded-xl bg-black"></canvas>
+                            <div className="absolute top-2 left-2 text-white font-bold text-xl">{score}</div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- SHOP & INVENTORY ---
+        const ShopModal = ({ user, updateCredits, equipItem, onClose, buyItem }) => {
+            const [tab, setTab] = useState('shop'); // shop, inventory
+            
+            const inventory = user.inventory || [];
+            const userItems = SHOP_ITEMS.filter(i => inventory.includes(i.id));
+
+            return (
+                <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+                    <div className="glass-card w-full max-w-2xl h-[80vh] flex flex-col rounded-2xl overflow-hidden">
+                        <div className="flex p-4 border-b border-white/10">
+                            <button onClick={()=>setTab('shop')} className={`flex-1 py-2 font-bold font-thai ${tab==='shop'?'text-brand-accent border-b-2 border-brand-accent':'text-slate-500'}`}>ร้านค้า</button>
+                            <button onClick={()=>setTab('inventory')} className={`flex-1 py-2 font-bold font-thai ${tab==='inventory'?'text-brand-accent border-b-2 border-brand-accent':'text-slate-500'}`}>กระเป๋า</button>
+                            <button onClick={onClose} className="px-4 text-slate-500">✕</button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-4 custom-scroll">
+                            {tab === 'shop' ? (
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    {SHOP_ITEMS.map(item => {
+                                        const owned = inventory.includes(item.id) || (item.type==='vip' && user.vipRank===item.rank);
+                                        return (
+                                            <div key={item.id} className="p-3 bg-white/5 border border-white/5 rounded-xl flex flex-col items-center text-center">
+                                                <div className="text-3xl mb-2">{item.icon || '📦'}</div>
+                                                <div className="font-bold text-sm text-white font-thai">{item.name}</div>
+                                                <div className="text-xs text-slate-400 mb-2 font-thai">{item.desc}</div>
+                                                <button 
+                                                    disabled={owned || user.credits < item.price}
+                                                    onClick={()=>buyItem(item)}
+                                                    className={`w-full py-1 text-xs font-bold rounded font-thai ${owned ? 'bg-slate-700 text-slate-500' : 'bg-brand-primary text-white hover:bg-brand-accent'}`}
+                                                >
+                                                    {owned ? 'ครอบครองแล้ว' : `${item.price} 🪙`}
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             ) : (
-                                <div>
-                                    {checkBingo && <div className="text-4xl font-bold text-yellow-400 mb-4 animate-bounce font-tech">BINGO! +200</div>}
-                                    <div className="grid grid-cols-5 gap-2 aspect-square mb-4 max-w-[300px] mx-auto">
-                                        {playerCard.map((col, c) => (
-                                            <div key={c} className="flex flex-col gap-2">
-                                                {col.map((val, r) => { 
-                                                    const marked = val === 'FREE' || gameState.history.includes(val); 
-                                                    return <div key={r} className={`flex-1 flex items-center justify-center font-bold text-sm rounded transition-all duration-300 ${marked ? 'bg-neon-blue text-black shadow-[0_0_10px_#00f3ff] scale-105' : 'bg-white/5 text-slate-500'}`}>{val === 'FREE' ? '★' : val}</div> 
-                                                })}
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <button onClick={buyCard} className="text-xs text-slate-400 hover:text-white border-b border-slate-600 pb-1">ซื้อตั๋วใบใหม่</button>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    {userItems.map(item => (
+                                        <div key={item.id} className="p-3 bg-white/5 border border-white/5 rounded-xl flex flex-col items-center text-center">
+                                            <div className="text-3xl mb-2">{item.icon || '🎒'}</div>
+                                            <div className="font-bold text-sm text-white font-thai">{item.name}</div>
+                                            {item.type !== 'vip' && (
+                                                <button 
+                                                    onClick={()=>equipItem(item.type, item.id)}
+                                                    className={`mt-2 w-full py-1 text-xs font-bold rounded font-thai ${user.equipped?.[item.type] === item.id ? 'bg-green-500 text-black' : 'bg-white/10 hover:bg-white/20'}`}
+                                                >
+                                                    {user.equipped?.[item.type] === item.id ? 'ใช้อยู่' : 'ใช้งาน'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {userItems.length === 0 && <div className="col-span-3 text-center text-slate-500 mt-10 font-thai">ไม่มีไอเทม</div>}
                                 </div>
                             )}
                         </div>
-                    )}
-
-                    <div className="glass-panel p-4">
-                        <div className="text-[10px] text-slate-500 mb-2 uppercase tracking-wider">History</div>
-                        <div className="flex flex-wrap gap-1 h-12 overflow-hidden">
-                            {(gameState.history || []).map((n, i) => <span key={i} className="text-xs text-slate-300 bg-white/5 px-2 py-1 rounded border border-white/5">{n}</span>)}
-                        </div>
                     </div>
                 </div>
             );
-        }
-
-        // --- RANKING ---
-        function Ranking({ users, onClose }) {
-            const [tab, setTab] = useState('rich');
-            const sorted = useMemo(() => {
-                let d = [...users];
-                if(tab==='rich') d.sort((a,b)=>(b.credits||0)-(a.credits||0));
-                else if(tab==='run') d.sort((a,b)=>(b.highscores?.runner||0)-(a.highscores?.runner||0));
-                else d.sort((a,b)=>(b.highscores?.memory||0)-(a.highscores?.memory||0));
-                return d.slice(0, 50);
-            }, [users, tab]);
-
-            return (
-                <div className="glass-panel p-6 h-full flex flex-col animate-fade-in">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold font-tech flex items-center gap-2"><Icons.Trophy className="text-yellow-400 w-5 h-5"/> LEADERBOARD</h2>
-                        <button onClick={onClose}>✕</button>
-                    </div>
-                    <div className="flex bg-black/30 rounded-lg p-1 mb-4">
-                        {['rich', 'run', 'memory'].map(t => (
-                            <button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs font-bold rounded ${tab===t ? 'bg-white/10 text-white' : 'text-slate-500'}`}>
-                                {t.toUpperCase()}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="flex-1 overflow-y-auto custom-scroll pr-2">
-                        {sorted.map((u, i) => (
-                            <div key={u.id} className="flex items-center justify-between p-3 mb-2 bg-white/5 rounded-lg border border-white/5">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-6 h-6 flex items-center justify-center font-bold text-xs rounded-full ${i<3 ? 'bg-yellow-500 text-black':'bg-slate-700'}`}>{i+1}</div>
-                                    <div className="text-sm font-mono">
-                                        {u.username}
-                                        {u.vipLevel && u.vipLevel !== 'NONE' && <span className="ml-1 text-[10px] text-yellow-400">VIP</span>}
-                                    </div>
-                                </div>
-                                <div className="font-bold text-neon-blue">
-                                    {tab==='rich' ? u.credits?.toLocaleString() : (tab==='run' ? u.highscores?.runner : u.highscores?.memory) || 0}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-
-        // --- NAM TAO PU PLA (Updated) ---
-        function NamTaoPuPla({ userData, updateCredits, onClose }) { 
-            const sym = ["🎃", "🦀", "🐟", "🐓", "🍤", "🐯"]; 
-            const [bets, setBets] = useState({}); 
-            const [res, setRes] = useState([0,0,0]); 
-            const [state, setState] = useState('bet'); 
-            
-            const addBet = (i) => { 
-                if(state !== 'bet') return; 
-                playSfx('click');
-                if(userData.credits < 10) return alert("เงินไม่พอ"); 
-                updateCredits(-10); 
-                setBets(prev => ({...prev, [i]: (prev[i]||0)+10})); 
-            }; 
-            
-            const roll = () => { 
-                if(Object.keys(bets).length === 0) return alert("วางเดิมพันก่อน"); 
-                playSfx('click');
-                setState('rolling'); 
-                let c = 0; 
-                const iv = setInterval(() => { 
-                    setRes([Math.floor(Math.random()*6), Math.floor(Math.random()*6), Math.floor(Math.random()*6)]); 
-                    c++; 
-                    if(c > 10) { 
-                        clearInterval(iv); 
-                        const final = [Math.floor(Math.random()*6), Math.floor(Math.random()*6), Math.floor(Math.random()*6)]; 
-                        setRes(final); 
-                        let win = 0; 
-                        let hits = {}; 
-                        final.forEach(x => hits[x] = (hits[x]||0)+1); 
-                        Object.keys(bets).forEach(k => { if(hits[k]) win += bets[k] + (bets[k] * hits[k]); }); 
-                        if(win > 0) { 
-                            updateCredits(win); 
-                            playSfx('win');
-                            alert(`ยินดีด้วย! ได้ ${win} เหรียญ`); 
-                        } 
-                        setState('bet'); 
-                        setBets({}); 
-                    } 
-                }, 100); 
-            }; 
-            return (<div className="glass-panel p-6 h-full flex flex-col items-center justify-center animate-zoom-in"><div className="flex justify-between w-full mb-4"><h2 className="text-lg font-bold text-red-400">น้ำเต้าปูปลา</h2><button onClick={onClose} className="text-xs text-slate-400">ออก</button></div><div className="flex gap-4 mb-6 bg-black/40 p-4 rounded-xl border border-red-500/20">{res.map((r,i) => <div key={i} className="dice-face text-4xl">{sym[r]}</div>)}</div><div className="grid grid-cols-3 gap-3 w-full mb-6">{sym.map((s, i) => (<div key={i} onClick={()=>addBet(i)} className="bg-white/5 p-2 rounded border border-white/10 hover:border-red-400 cursor-pointer text-center relative group"><div className="text-3xl mb-1 group-hover:scale-110 transition-transform">{s}</div><div className="text-[10px] text-slate-400">เดิมพัน 10</div>{bets[i] && <div className="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-bold px-1 rounded-bl">{bets[i]}</div>}</div>))}</div><button onClick={roll} disabled={state!=='bet'} className="w-full py-3 bg-red-600 text-white font-bold rounded-xl disabled:opacity-50">{state==='rolling' ? 'กำลังเขย่า...' : 'เขย่าลูกเต๋า'}</button></div>); 
-        }
+        };
 
         // --- MAIN APP ---
-        function App() {
-            const [userProfile, setUserProfile] = useState(null);
-            const [userData, setUserData] = useState(null);
-            const [activePlayers, setActivePlayers] = useState([]);
-            const [screen, setScreen] = useState('lobby'); // lobby, shop, bag, ranking, game...
-            const [currentRoomId, setCurrentRoomId] = useState(null);
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [page, setPage] = useState('home');
+            const [loading, setLoading] = useState(true);
             const [showShop, setShowShop] = useState(false);
-            const [showBag, setShowBag] = useState(false);
-            const [bgm, setBgm] = useState(false);
+            const [showAuthModal, setShowAuthModal] = useState(false);
+            const [authLoading, setAuthLoading] = useState(false);
+            const [announcement, setAnnouncement] = useState('ยินดีต้อนรับสู่ ซาโตะ อาเขต • รับรางวัลฟรีทุกวัน 100 เครดิต • เกมใหม่มาแล้ว!');
 
-            const audioRef = useRef(new Audio(BGM_URL));
-            useEffect(() => { audioRef.current.loop = true; audioRef.current.volume = 0.3; }, []);
-            const toggleBgm = () => {
-                if(bgm) { audioRef.current.pause(); setBgm(false); }
-                else { audioRef.current.play().catch(()=>{}); setBgm(true); }
-            };
-
-            // Auth Logic
             useEffect(() => {
-                const init = async () => {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await auth.signInWithCustomToken(__initial_auth_token);
-                    else await auth.signInAnonymously();
-                    
-                    const uid = localStorage.getItem('sato_uid');
-                    if(uid) {
-                        const d = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(uid).get();
-                        if(d.exists) setUserProfile({ uid, ...d.data() });
-                        else await createGuest();
-                    } else await createGuest();
+                if(window.lucide) window.lucide.createIcons();
+                
+                // FIX: Auth Priority Check to prevent "Permission Denied"
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        try {
+                            await auth.signInWithCustomToken(__initial_auth_token);
+                        } catch(e) { 
+                            console.error("Token Auth Failed", e); 
+                            if (!auth.currentUser) await auth.signInAnonymously();
+                        }
+                    } else {
+                        if (!auth.currentUser) {
+                            try { await auth.signInAnonymously(); } catch(e) { console.error("Anon Auth Failed", e); }
+                        }
+                    }
                 };
-                init();
+                initAuth();
+
+                const unsub = auth.onAuthStateChanged(async (u) => {
+                    if (u) {
+                        const ref = db.collection('artifacts').doc(APP_ID).collection('users').doc(u.uid).collection('profile').doc('userData');
+                        
+                        ref.onSnapshot(doc => {
+                            if(doc.exists) {
+                                setUser({uid: u.uid, ...doc.data()});
+                            } else {
+                                const guestData = {
+                                    username: `ผู้เยี่ยมชม_${Math.floor(Math.random()*999)}`,
+                                    username_lower: `guest`,
+                                    credits: 500, xp: 0, vipRank: 'NONE', role: 'guest',
+                                    dailyReward: { count: 0 }, inventory: [], equipped: {}
+                                };
+                                ref.set(guestData);
+                                setUser({uid: u.uid, ...guestData});
+                            }
+                            setLoading(false);
+                        }, err => {
+                            console.error("Profile Snapshot Error:", err);
+                            // Fallback to stop loading spinner
+                            setLoading(false);
+                        });
+                    }
+                });
+                return () => unsub();
             }, []);
+            
+            useEffect(() => { if(!loading && window.lucide) window.lucide.createIcons(); }, [page, loading, showShop]);
 
-            const createGuest = async () => {
-                const uid = 'user_'+Math.random().toString(36).substr(2,9);
-                const data = { 
-                    username: 'Guest_'+uid.substr(0,4), role: 'player', credits: INITIAL_CREDITS, 
-                    inventory: [], equipped: {}, highscores: { runner: 0, memory: 0 },
-                    vipLevel: 'NONE', vipExpires: null,
-                    joinedAt: firebase.firestore.FieldValue.serverTimestamp() 
-                };
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(uid).set(data);
-                localStorage.setItem('sato_uid', uid);
-                setUserProfile({ uid, ...data });
+            const handleLogin = async (username, password) => {
+                setAuthLoading(true);
+                try {
+                    if (!auth.currentUser) await auth.signInAnonymously();
+                    const uid = auth.currentUser.uid;
+                    const lowerUser = username.toLowerCase();
+                    
+                    if (lowerUser === 'admin' && password !== '1234') throw new Error('รหัสผ่านผิด');
+
+                    // NOTE: Removed complex queries here just in case, but keeping simple 'where' if supported
+                    const dirRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users_directory');
+                    const snap = await dirRef.where('username_lower', '==', lowerUser).limit(1).get();
+                    
+                    let newData = { 
+                        username, username_lower: lowerUser, credits: 1000, xp: 0, vipRank: 'NONE', 
+                        dailyReward: { count: 0, lastClaim: null }, inventory: [], equipped: {} 
+                    };
+
+                    if (!snap.empty) {
+                        const d = snap.docs[0].data();
+                        newData = { ...newData, credits: d.credits, xp: d.xp, vipRank: d.vipRank };
+                    } else {
+                        if (lowerUser === 'admin') newData = { ...newData, credits: 999999, vipRank: 'PLATINUM', role: 'admin' };
+                    }
+
+                    await db.collection('artifacts').doc(APP_ID).collection('users').doc(uid).collection('profile').doc('userData').set(newData, {merge: true});
+                    // Only update directory if strict rules allow (public write might be restricted, but try)
+                    try {
+                        await dirRef.doc(uid).set({ username, username_lower: lowerUser, credits: newData.credits, xp: newData.xp, vipRank: newData.vipRank });
+                    } catch(e) { console.warn("Public directory update skipped", e); }
+                    
+                    setShowAuthModal(false);
+                    SoundEngine.play('win');
+                    alert(`ยินดีต้อนรับ, ${username}!`);
+                } catch(e) { alert(e.message); }
+                finally { setAuthLoading(false); }
             };
 
-            // Sync Data
-            useEffect(() => {
-                if(!userProfile) return;
-                const unsub1 = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).onSnapshot(s => {
-                    if(s.exists) setUserData(s.data());
-                });
-                const unsub2 = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').onSnapshot(s => {
-                    setActivePlayers(s.docs.map(d=>({id:d.id, ...d.data()})));
-                });
-                return () => { unsub1(); unsub2(); };
-            }, [userProfile]);
-
-            const updateCredits = async (amt) => {
-                const vip = getVipStatus(userData);
-                // VIP Bonus Logic
-                const finalAmt = amt > 0 ? Math.floor(amt * (vip.bonus || 1)) : amt;
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_users').doc(userProfile.uid).update({
-                    credits: firebase.firestore.FieldValue.increment(finalAmt)
-                });
+            const updateCredits = (amt) => {
+                if(!user) return;
+                const newCreds = (user.credits || 0) + amt;
+                db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid).collection('profile').doc('userData').update({ credits: newCreds });
+                if(user.role !== 'guest') {
+                    try {
+                        db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users_directory').doc(user.uid).update({ credits: newCreds });
+                    } catch(e) {}
+                }
             };
 
-            if(!userData) return <div className="h-screen flex items-center justify-center text-neon-blue font-tech animate-pulse text-2xl">INITIALIZING NEURAL LINK...</div>;
+            const buyItem = (item) => {
+                if(user.credits < item.price) return alert("เครดิตไม่พอ");
+                const updates = { credits: user.credits - item.price };
+                if(item.type === 'vip') updates.vipRank = item.rank;
+                else updates.inventory = firebase.firestore.FieldValue.arrayUnion(item.id);
+                
+                db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid).collection('profile').doc('userData').update(updates);
+                alert(`ซื้อ ${item.name} สำเร็จ!`);
+            };
 
-            const vip = getVipStatus(userData);
+            const equipItem = (type, id) => {
+                db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid).collection('profile').doc('userData').update({ [`equipped.${type}`]: id });
+            };
+
+            const handleDailyReward = () => {
+                const now = new Date();
+                const lastClaim = user.dailyReward?.lastClaim?.toDate() || new Date(0);
+                const isSameDay = now.toDateString() === lastClaim.toDateString();
+                let count = isSameDay ? (user.dailyReward?.count || 0) : 0;
+                
+                const timeDiff = now - lastClaim;
+                if (isSameDay && timeDiff < 3600000) return alert(`กรุณารออีก ${Math.ceil((3600000 - timeDiff)/60000)} นาที`);
+                
+                if (count >= 5) return alert("ครบโควต้าวันนี้แล้ว (5/5) พรุ่งนี้มาใหม่นะ!");
+
+                db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid).collection('profile').doc('userData').update({
+                    credits: user.credits + 100,
+                    'dailyReward.count': count + 1,
+                    'dailyReward.lastClaim': firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert("รับแล้ว 100 เครดิต!");
+            };
+
+            if(loading) return <div className="min-h-screen flex items-center justify-center text-brand-accent font-thai animate-pulse text-2xl">กำลังเข้าสู่ระบบ...</div>;
+
+            const frameClass = SHOP_ITEMS.find(i => i.id === user.equipped?.frame)?.class || 'border-white/20';
+            const charIcon = SHOP_ITEMS.find(i => i.id === user.equipped?.char)?.icon || user.username.charAt(0);
 
             return (
-                <div className="max-w-6xl mx-auto p-4 pb-20 min-h-screen flex flex-col font-sans text-slate-200">
-                    {/* Header */}
-                    <header className="glass-panel p-4 mb-6 sticky top-4 z-40 flex justify-between items-center">
-                        <div className="flex items-center gap-4 cursor-pointer group" onClick={()=>setScreen('profile')}>
-                            <div className={`w-12 h-12 rounded-xl bg-black border-2 flex items-center justify-center text-xl font-bold relative overflow-hidden ${vip.border || 'border-slate-600'}`}>
-                                {userData.equipped?.char === 'char_cat' ? '🐱' : userData.username.charAt(0)}
-                                {vip.level !== 'NONE' && <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-white/30 animate-shimmer"></div>}
+                <div className="min-h-screen max-w-6xl mx-auto p-4 flex flex-col relative z-10">
+                    <header className="glass-card p-4 rounded-2xl flex justify-between items-center mb-6 animate-fade-in">
+                        <div className="flex items-center gap-4">
+                            <div className={`w-14 h-14 rounded-xl bg-slate-900 flex items-center justify-center text-2xl font-bold ${frameClass}`}>
+                                {charIcon}
                             </div>
                             <div>
-                                <div className={`font-bold font-tech text-lg flex items-center gap-2 ${vip.color}`}>
-                                    {userData.username}
-                                    {vip.level !== 'NONE' && <span className="text-[9px] border px-1 rounded border-current">{vip.name}</span>}
+                                <div className="font-thai text-xl text-white flex items-center gap-2 font-bold">
+                                    {user.username} 
+                                    {user.vipRank !== 'NONE' && <span className="text-[10px] bg-brand-primary px-2 rounded font-cyber">{user.vipRank}</span>}
                                 </div>
-                                <div className="text-xs text-slate-400 font-mono flex items-center gap-1">
-                                    <span className="text-neon-green">●</span> ONLINE | 💳 {userData.credits.toLocaleString()}
-                                </div>
+                                <div className="text-xs text-slate-400 font-thai font-bold">เครดิต: {user.credits.toLocaleString()}</div>
                             </div>
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={()=>setScreen('lobby')} className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"><Icons.Home className="w-5 h-5"/></button>
-                            <button onClick={()=>setShowBag(true)} className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"><Icons.Bag className="w-5 h-5"/></button>
-                            <button onClick={()=>setShowShop(true)} className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-blue/20 to-neon-purple/20 hover:from-neon-blue/40 hover:to-neon-purple/40 border border-neon-blue/30 flex items-center justify-center transition-all"><Icons.Shop className="w-5 h-5 text-white"/></button>
-                            <button onClick={toggleBgm} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${bgm ? 'bg-neon-green/20 text-neon-green' : 'bg-white/5 text-slate-500'}`}><Icons.Music className="w-5 h-5"/></button>
+                        <div className="flex gap-2 items-center">
+                            <button onClick={()=>setShowAuthModal(true)} className="px-4 py-2 bg-brand-primary/20 text-brand-primary rounded-lg border border-brand-primary/50 text-xs font-bold hover:bg-brand-primary hover:text-white transition-all font-thai">
+                                {user.role === 'guest' ? 'เข้าสู่ระบบ' : 'เปลี่ยนบัญชี'}
+                            </button>
+                            <button onClick={()=>setShowShop(true)} className="p-3 bg-white/5 rounded-xl hover:bg-brand-accent hover:text-black transition-all"><Icon name="shopping-bag"/></button>
                         </div>
                     </header>
 
-                    {/* Content Area */}
-                    <main className="flex-1 relative">
-                        {screen === 'lobby' && (
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-fade-in">
-                                {/* Left: Games Grid */}
-                                <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div onClick={()=>setScreen('rooms')} className="nft-card h-48 rounded-2xl p-6 flex flex-col justify-between cursor-pointer group">
-                                        <Icons.Ticket className="w-12 h-12 text-neon-blue group-hover:scale-110 transition-transform"/>
-                                        <div>
-                                            <h3 className="text-2xl font-tech font-bold text-white">BINGO HALL</h3>
-                                            <p className="text-sm text-slate-400">Classic multiplayer bingo</p>
-                                        </div>
-                                    </div>
-                                    <div onClick={()=>setScreen('runner')} className="nft-card h-48 rounded-2xl p-6 flex flex-col justify-between cursor-pointer group border-neon-green/30">
-                                        <Icons.Robot className="w-12 h-12 text-neon-green group-hover:scale-110 transition-transform"/>
-                                        <div>
-                                            <h3 className="text-2xl font-tech font-bold text-white">CYBER RUNNER</h3>
-                                            <p className="text-sm text-slate-400">Endless running implementation</p>
-                                        </div>
-                                    </div>
-                                    <div onClick={()=>setScreen('memory')} className="nft-card h-48 rounded-2xl p-6 flex flex-col justify-between cursor-pointer group border-neon-purple/30">
-                                        <Icons.Brain className="w-12 h-12 text-neon-purple group-hover:scale-110 transition-transform"/>
-                                        <div>
-                                            <h3 className="text-2xl font-tech font-bold text-white">MEMORY PROTOCOL</h3>
-                                            <p className="text-sm text-slate-400">Pattern matching test</p>
-                                        </div>
-                                    </div>
-                                    <div onClick={()=>setScreen('namtao')} className="nft-card h-48 rounded-2xl p-6 flex flex-col justify-between cursor-pointer group border-red-500/30">
-                                        <div className="text-4xl">🎲</div>
-                                        <div>
-                                            <h3 className="text-2xl font-tech font-bold text-white">NAM TAO PU PLA</h3>
-                                            <p className="text-sm text-slate-400">Traditional dice betting</p>
-                                        </div>
+                    <div className="w-full bg-brand-primary/10 border-y border-brand-primary/30 mb-6 overflow-hidden py-1">
+                        <div className="whitespace-nowrap animate-marquee text-xs font-thai text-brand-accent font-bold">
+                            {announcement}
+                        </div>
+                    </div>
+
+                    <main className="flex-1">
+                        {page === 'home' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
+                                <div onClick={()=>setPage('bingo')} className="group relative h-64 rounded-3xl overflow-hidden cursor-pointer border border-white/10 hover:border-brand-accent transition-all">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent z-10"></div>
+                                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1518544806352-a228605200bd?auto=format&fit=crop&q=80')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
+                                    <div className="absolute bottom-0 left-0 p-6 z-20">
+                                        <h3 className="text-3xl font-cyber text-white mb-1 group-hover:text-brand-accent transition-colors">BINGO</h3>
+                                        <p className="text-sm text-slate-300 font-thai">ห้องเกมบิงโกออนไลน์</p>
                                     </div>
                                 </div>
 
-                                {/* Right: Social & Rank */}
-                                <div className="md:col-span-4 flex flex-col gap-6">
-                                    <div className="h-64"><Ranking users={activePlayers} onClose={()=>{}} /></div>
-                                    <div className="h-64 glass-panel p-4 flex items-center justify-center text-slate-500 border-dashed border-2 border-slate-700">Ad Space / News</div>
+                                <div onClick={()=>setPage('runner')} className="group relative h-64 rounded-3xl overflow-hidden cursor-pointer border border-white/10 hover:border-brand-secondary transition-all">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent z-10"></div>
+                                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
+                                    <div className="absolute bottom-0 left-0 p-6 z-20">
+                                        <h3 className="text-3xl font-cyber text-white mb-1 group-hover:text-brand-secondary transition-colors">CYBER FLY</h3>
+                                        <p className="text-sm text-slate-300 font-thai">บินหลบสิ่งกีดขวาง</p>
+                                    </div>
+                                </div>
+
+                                <div onClick={()=>setPage('memory')} className="group relative h-64 rounded-3xl overflow-hidden cursor-pointer border border-white/10 hover:border-green-400 transition-all">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent z-10"></div>
+                                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1614728263952-84ea256f9679?auto=format&fit=crop&q=80')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
+                                    <div className="absolute bottom-0 left-0 p-6 z-20">
+                                        <h3 className="text-3xl font-cyber text-white mb-1 group-hover:text-green-400 transition-colors">MEMORY</h3>
+                                        <p className="text-sm text-slate-300 font-thai">ฝึกความจำจับคู่ภาพ</p>
+                                    </div>
+                                </div>
+
+                                <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="glass-card p-6 rounded-2xl flex items-center justify-between">
+                                        <div>
+                                            <h4 className="font-thai font-bold text-lg text-brand-accent">รับรางวัลรายวัน</h4>
+                                            <p className="text-xs text-slate-500 font-thai">รีเซ็ตทุกเที่ยงคืน • รับได้ทุก 1 ชม.</p>
+                                        </div>
+                                        <button onClick={handleDailyReward} className="px-6 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-brand-accent hover:text-black transition-all font-bold text-sm font-thai">
+                                            รับ (100)
+                                        </button>
+                                    </div>
+                                    <div className="glass-card p-6 rounded-2xl flex items-center justify-between">
+                                        <div>
+                                            <h4 className="font-thai font-bold text-lg text-purple-400">อันดับผู้เล่น</h4>
+                                            <p className="text-xs text-slate-500 font-thai">สุดยอดผู้เล่นประจำซีซั่น</p>
+                                        </div>
+                                        <div className="text-2xl font-bold text-white font-cyber">#1 CyberKing</div>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* Screens */}
-                        {screen === 'rooms' && <BingoLobby userProfile={userProfile} userData={userData} db={db} onClose={()=>setScreen('lobby')} onJoinRoom={(rid)=>{setCurrentRoomId(rid); setScreen('bingo_room');}} />}
-                        {screen === 'bingo_room' && <BingoRoom roomId={currentRoomId} userProfile={userProfile} userData={userData} db={db} currentAppId={APP_ID} updateCredits={updateCredits} onLeave={()=>{setCurrentRoomId(null); setScreen('rooms');}} />}
-                        {screen === 'runner' && <CyberRunner userData={userData} userProfile={userProfile} db={db} updateCredits={updateCredits} onClose={()=>setScreen('lobby')} />}
-                        {screen === 'memory' && <MemoryMatch userData={userData} userProfile={userProfile} db={db} updateCredits={updateCredits} onClose={()=>setScreen('lobby')} />}
-                        {screen === 'namtao' && <NamTaoPuPla userData={userData} updateCredits={updateCredits} onClose={()=>setScreen('lobby')} />}
+                        {page === 'bingo' && <BingoLobby user={user} db={db} onExit={()=>setPage('home')} updateCredits={updateCredits} />}
+                        {page === 'runner' && <CyberFly onExit={()=>setPage('home')} updateCredits={updateCredits} />}
+                        {page === 'memory' && <MemoryMatch onExit={()=>setPage('home')} updateCredits={updateCredits} />}
                     </main>
 
-                    {/* Modals */}
-                    {showBag && <InventoryModal userData={userData} userProfile={userProfile} db={db} onClose={()=>setShowBag(false)} />}
-                    {showShop && <ShopModal userData={userData} userProfile={userProfile} db={db} currentAppId={APP_ID} onClose={()=>setShowShop(false)} />}
+                    {showShop && <ShopModal user={user} updateCredits={updateCredits} equipItem={equipItem} buyItem={buyItem} onClose={()=>setShowShop(false)} />}
+                    {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)} onLogin={handleLogin} loading={authLoading} />}
                 </div>
             );
-        }
+        };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
