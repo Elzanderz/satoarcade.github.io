@@ -1,822 +1,511 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ซาโตะ อาเขต - SATO ARCADE</title>
+import React, { useState, useEffect, useRef } from 'react';
+import { Shield, Zap, Search, Skull, Trophy, RotateCcw, Copy, Users, Play, LogIn, ArrowRight } from 'lucide-react';
+import { initializeApp } from "firebase/app";
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, updateProfile } from "firebase/auth";
+import { 
+  getFirestore, collection, doc, setDoc, getDoc, updateDoc, 
+  onSnapshot, arrayUnion, serverTimestamp, increment 
+} from "firebase/firestore";
+
+// --- Firebase Configuration & Setup ---
+// รับค่า Config จาก Environment ของ Canvas
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// --- Utility Functions ---
+const generateBingoCard = () => {
+  const card = [];
+  const ranges = [
+    { min: 1, max: 15 }, { min: 16, max: 30 }, { min: 31, max: 45 }, { min: 46, max: 60 }, { min: 61, max: 75 }
+  ];
+  for (let col = 0; col < 5; col++) {
+    const columnNumbers = [];
+    while (columnNumbers.length < 5) {
+      const num = Math.floor(Math.random() * (ranges[col].max - ranges[col].min + 1)) + ranges[col].min;
+      if (!columnNumbers.includes(num)) columnNumbers.push(num);
+    }
+    for (let row = 0; row < 5; row++) {
+      const idx = row * 5 + col;
+      card[idx] = { 
+        id: idx, 
+        value: (row === 2 && col === 2) ? 'FREE' : columnNumbers[row], 
+        marked: (row === 2 && col === 2) 
+      };
+    }
+  }
+  return card.sort((a, b) => a.id - b.id);
+};
+
+const checkWin = (card) => {
+  const lines = [
+    [0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13, 14], [15, 16, 17, 18, 19], [20, 21, 22, 23, 24],
+    [0, 5, 10, 15, 20], [1, 6, 11, 16, 21], [2, 7, 12, 17, 22], [3, 8, 13, 18, 23], [4, 9, 14, 19, 24],
+    [0, 6, 12, 18, 24], [4, 8, 12, 16, 20]
+  ];
+  return lines.some(line => line.every(idx => card[idx].marked));
+};
+
+// --- Main Component ---
+const GameApp = () => {
+  // Global State
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState('login'); // login, lobby, room, game
+  
+  // Game Data State
+  const [roomId, setRoomId] = useState('');
+  const [isHost, setIsHost] = useState(false);
+  const [gameData, setGameData] = useState(null); // shared game state (status, currentNumber, etc.)
+  const [players, setPlayers] = useState([]); // list of players in room
+  const [myPlayerDoc, setMyPlayerDoc] = useState(null); // my specific player data
+
+  // Local Gameplay State
+  const [timeLeft, setTimeLeft] = useState(4);
+  const [logs, setLogs] = useState([]);
+  const [localCard, setLocalCard] = useState([]);
+  
+  // Refs
+  const timerRef = useRef(null);
+  const numberPoolRef = useRef([]);
+
+  // --- Auth & Init ---
+  useEffect(() => {
+    const initAuth = async () => {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+            await signInAnonymously(auth);
+        }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      if (u) {
+        setUser(u);
+        if (u.displayName) setView('lobby'); // Skip login if already has name
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // --- Firestore Listeners ---
+  useEffect(() => {
+    if (!roomId || !user) return;
+
+    // 1. Listen to Game Room Data
+    const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', roomId);
+    const unsubGame = onSnapshot(gameRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setGameData(data);
+        
+        // Host Logic: Timer Sync
+        if (data.status === 'playing' && data.lastCallTime) {
+           // Sync time logic could go here, simplified for now
+        }
+      } else {
+        // Room deleted
+        alert('Room closed');
+        setView('lobby');
+      }
+    }, (error) => console.error("Game listener error:", error));
+
+    // 2. Listen to Players Subcollection
+    const playersRef = collection(db, 'artifacts', appId, 'public', 'data', 'games', roomId, 'players');
+    const unsubPlayers = onSnapshot(playersRef, (snapshot) => {
+      const pList = snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
+      setPlayers(pList);
+      
+      const me = pList.find(p => p.uid === user.uid);
+      if (me) {
+        setMyPlayerDoc(me);
+        setLocalCard(me.card || []);
+        
+        // Check if I won
+        if (me.hasWon && view !== 'gameover') {
+           // Wait for game status update
+        }
+        
+        // Handle Stun Effect
+        if (me.status === 'stunned') {
+            // Auto recover after 3s (Client side prediction/cleanup)
+             setTimeout(() => {
+               if (me.status === 'stunned') {
+                 updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', roomId, 'players', user.uid), {
+                   status: 'normal'
+                 });
+               }
+             }, 3000);
+        }
+      }
+    }, (error) => console.error("Players listener error:", error));
+
+    return () => {
+      unsubGame();
+      unsubPlayers();
+    };
+  }, [roomId, user]);
+
+  // --- Host Game Loop ---
+  useEffect(() => {
+    if (!isHost || !gameData || gameData.status !== 'playing') return;
+
+    const runGameLoop = async () => {
+      if (timeLeft <= 0) {
+        // Pick Number
+        const pool = gameData.numberPool || [];
+        if (pool.length === 0) return; // End game logic could go here
+
+        const randomIndex = Math.floor(Math.random() * pool.length);
+        const nextNum = pool[randomIndex];
+        const newPool = pool.filter((_, i) => i !== randomIndex);
+
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', roomId), {
+          currentNumber: nextNum,
+          calledNumbers: arrayUnion(nextNum),
+          numberPool: newPool,
+          lastCallTime: serverTimestamp()
+        });
+        setTimeLeft(4);
+      } else {
+        const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
+        return () => clearTimeout(timer);
+      }
+    };
+
+    const cleanup = runGameLoop();
+    return () => cleanup && cleanup.then && cleanup.then(c => c && c());
+  }, [timeLeft, isHost, gameData]);
+
+
+  // --- Actions ---
+
+  const handleLogin = async (name) => {
+    if (!name.trim()) return;
+    try {
+      await updateProfile(user, { displayName: name });
+      setView('lobby');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const createRoom = async () => {
+    const newRoomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', newRoomId);
     
-    <!-- Core Libraries -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    // Init Game Doc
+    await setDoc(gameRef, {
+      hostId: user.uid,
+      status: 'waiting',
+      currentNumber: null,
+      calledNumbers: [],
+      numberPool: Array.from({ length: 75 }, (_, i) => i + 1),
+      winner: null
+    });
+
+    // Init My Player Doc
+    await joinRoomLogic(newRoomId, true);
+  };
+
+  const joinRoom = async (idInput) => {
+    const id = idInput.toUpperCase();
+    const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', id);
+    const snap = await getDoc(gameRef);
+    if (snap.exists()) {
+      if (snap.data().status !== 'waiting') {
+        alert("Game already started!");
+        return;
+      }
+      await joinRoomLogic(id, false);
+    } else {
+      alert("Room not found");
+    }
+  };
+
+  const joinRoomLogic = async (id, hostStatus) => {
+    setRoomId(id);
+    setIsHost(hostStatus);
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    const myCard = generateBingoCard();
+    const playerRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', id, 'players', user.uid);
+    
+    await setDoc(playerRef, {
+      name: user.displayName || 'Anonymous',
+      card: myCard,
+      items: { search: 1, bomb: 1, shield: 1 },
+      status: 'normal',
+      score: 0, // lines completed
+      hasWon: false
+    });
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Orbitron:wght@700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    setView('room');
+  };
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { 
-                        'thai': ['"Noto Sans Thai"', 'sans-serif'],
-                        'cyber': ['"Orbitron"', 'sans-serif'],
-                        'tech': ['"Rajdhani"', 'sans-serif']
-                    },
-                    colors: { 
-                        'brand-primary': '#4f46e5', // Indigo
-                        'brand-secondary': '#8b5cf6', // Violet
-                        'brand-accent': '#06b6d4', // Cyan
-                        'glass': 'rgba(15, 23, 42, 0.9)',
-                        'vip-silver': '#e2e8f0',
-                        'vip-gold': '#fbbf24',
-                        'vip-plat': '#22d3ee',
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 0.5s ease-out',
-                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                        'pulse-slow': 'pulse 3s infinite',
-                        'marquee': 'marquee 25s linear infinite',
-                    },
-                    keyframes: {
-                        fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
-                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: 0 }, '100%': { transform: 'translateY(0)', opacity: 1 } },
-                        marquee: { '0%': { transform: 'translateX(100%)' }, '100%': { transform: 'translateX(-100%)' } }
-                    }
-                }
-            }
-        }
-    </script>
+  const startGame = async () => {
+    if (!isHost) return;
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', roomId), {
+      status: 'playing',
+      numberPool: Array.from({ length: 75 }, (_, i) => i + 1) // Reset pool
+    });
+  };
 
-    <style>
-        body {
-            background-color: #000000;
-            color: #e2e8f0;
-            font-family: 'Noto Sans Thai', sans-serif;
-            overflow: hidden;
-        }
+  const handleCardClick = async (idx) => {
+    if (!myPlayerDoc || myPlayerDoc.status === 'stunned') return;
+    if (!gameData || !gameData.currentNumber) return;
+
+    const cell = localCard[idx];
+    if (cell.marked) return;
+    
+    // Validate
+    if (cell.value === gameData.currentNumber || cell.value === 'FREE') {
+      const newCard = [...localCard];
+      newCard[idx].marked = true;
+      setLocalCard(newCard); // Optimistic update
+      
+      // Update DB
+      const playerRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', roomId, 'players', user.uid);
+      await updateDoc(playerRef, { card: newCard });
+
+      // Check Win
+      if (checkWin(newCard)) {
+        await updateDoc(playerRef, { hasWon: true });
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', roomId), {
+            status: 'ended',
+            winner: user.displayName
+        });
+      }
+    } else {
+      // Wrong number feedback (local)
+      setLogs(prev => ['ผิด! เลขยังไม่ออก', ...prev]);
+    }
+  };
+
+  const useItem = async (type) => {
+    if (myPlayerDoc.items[type] <= 0) return;
+    if (myPlayerDoc.status === 'stunned') return;
+
+    // Deduct Item
+    const playerRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', roomId, 'players', user.uid);
+    await updateDoc(playerRef, { [`items.${type}`]: increment(-1) });
+
+    if (type === 'search') {
+      // Auto find
+      const targetIdx = localCard.findIndex(c => c.value === gameData.currentNumber && !c.marked);
+      if (targetIdx !== -1) handleCardClick(targetIdx);
+      else setLogs(prev => ['หาไม่เจอจ้า', ...prev]);
+    } 
+    else if (type === 'bomb') {
+      // Attack random other player
+      const targets = players.filter(p => p.uid !== user.uid && p.status !== 'stunned' && !p.shieldActive);
+      if (targets.length > 0) {
+        const victim = targets[Math.floor(Math.random() * targets.length)];
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', roomId, 'players', victim.uid), {
+          status: 'stunned'
+        });
+        setLogs(prev => [`ปาระเบิดใส่ ${victim.name}!`, ...prev]);
+      } else {
+        setLogs(prev => ['ไม่มีเป้าหมาย!', ...prev]);
+      }
+    }
+    else if (type === 'shield') {
+      await updateDoc(playerRef, { shieldActive: true });
+      setTimeout(() => {
+         updateDoc(playerRef, { shieldActive: false }).catch(() => {});
+      }, 10000);
+    }
+  };
+
+  // --- Views ---
+
+  // 1. Login View
+  if (view === 'login') {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans">
+        <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center">
+           <h1 className="text-4xl font-black text-indigo-600 mb-2">BINGO</h1>
+           <p className="text-gray-500 mb-6">Battle Online</p>
+           <form onSubmit={(e) => { e.preventDefault(); handleLogin(e.target.name.value); }}>
+             <input name="name" placeholder="ใส่ชื่อเล่นของคุณ..." className="w-full bg-gray-100 border-2 border-gray-200 rounded-xl p-3 mb-4 text-center text-lg focus:border-indigo-500 outline-none" autoFocus maxLength={10} required />
+             <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+               เข้าสู่ระบบ <ArrowRight size={20} />
+             </button>
+           </form>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Lobby View
+  if (view === 'lobby') {
+    return (
+       <div className="min-h-screen bg-indigo-900 flex flex-col items-center justify-center p-4 font-sans text-white">
+         <div className="w-full max-w-md space-y-6">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-indigo-700 rounded-full mx-auto flex items-center justify-center text-4xl mb-4 border-4 border-indigo-500">
+                😎
+              </div>
+              <h2 className="text-2xl font-bold">สวัสดี, {user?.displayName}</h2>
+              <p className="text-indigo-300">พร้อมจะลุยหรือยัง?</p>
+            </div>
+
+            <div className="bg-indigo-800 p-6 rounded-3xl shadow-lg border border-indigo-700">
+               <button onClick={createRoom} className="w-full bg-gradient-to-r from-pink-500 to-rose-500 p-4 rounded-xl font-bold text-xl mb-4 shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+                 <Play fill="white" /> สร้างห้องใหม่
+               </button>
+               
+               <div className="relative">
+                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-indigo-600"></div></div>
+                 <div className="relative flex justify-center text-sm"><span className="px-2 bg-indigo-800 text-indigo-400">หรือ</span></div>
+               </div>
+
+               <form onSubmit={(e) => { e.preventDefault(); joinRoom(e.target.room.value); }} className="mt-4 flex gap-2">
+                 <input name="room" placeholder="กรอกรหัสห้อง" className="flex-1 bg-indigo-900 border border-indigo-600 rounded-xl px-4 text-center outline-none focus:border-pink-500 uppercase" maxLength={6} required />
+                 <button type="submit" className="bg-indigo-600 p-3 rounded-xl font-bold hover:bg-indigo-500">เข้าร่วม</button>
+               </form>
+            </div>
+         </div>
+       </div>
+    );
+  }
+
+  // 3. Waiting Room View
+  if (view === 'room' && gameData?.status === 'waiting') {
+    return (
+      <div className="min-h-screen bg-slate-900 p-6 flex flex-col items-center text-white font-sans">
+        <h1 className="text-3xl font-black mb-2 text-yellow-400">WAITING ROOM</h1>
+        <div className="bg-slate-800 px-6 py-3 rounded-full flex items-center gap-3 mb-8 border border-slate-700">
+          <span className="text-gray-400">Room Code:</span>
+          <span className="text-2xl font-mono font-bold tracking-widest">{roomId}</span>
+          <button onClick={() => navigator.clipboard.writeText(roomId)} className="p-1 hover:bg-slate-700 rounded"><Copy size={16}/></button>
+        </div>
+
+        <div className="w-full max-w-md grid grid-cols-2 gap-4 mb-8">
+           {players.map(p => (
+             <div key={p.uid} className="bg-indigo-800 p-4 rounded-xl flex items-center gap-3 border border-indigo-600">
+               <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">{p.uid === gameData.hostId ? '👑' : '👤'}</div>
+               <span className="font-bold truncate">{p.name}</span>
+             </div>
+           ))}
+        </div>
+
+        {isHost ? (
+          <button onClick={startGame} className="w-full max-w-md bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl shadow-lg text-xl animate-pulse">
+             START GAME
+          </button>
+        ) : (
+          <p className="text-indigo-400 animate-pulse">Waiting for host to start...</p>
+        )}
+      </div>
+    );
+  }
+
+  // 4. Game Over View
+  if (gameData?.status === 'ended') {
+      return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans text-center">
+            <div className="bg-white rounded-3xl p-10 max-w-sm w-full animate-bounce-in">
+                <Trophy className="w-24 h-24 text-yellow-500 mx-auto mb-4" />
+                <h2 className="text-3xl font-black text-slate-800 mb-2">{gameData.winner} ชนะ!</h2>
+                <p className="text-gray-500 mb-8">เกมจบแล้วจ้า</p>
+                <button onClick={() => setView('lobby')} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold">กลับไปหน้าหลัก</button>
+            </div>
+        </div>
+      );
+  }
+
+  // 5. Playing View
+  return (
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center relative overflow-hidden font-sans select-none">
+      {/* Stun Overlay */}
+      {myPlayerDoc?.status === 'stunned' && (
+        <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center backdrop-blur-sm animate-pulse pointer-events-none">
+          <div className="text-center">
+            <Skull className="w-24 h-24 text-red-500 mx-auto mb-2 animate-bounce" />
+            <h2 className="text-white text-3xl font-bold">STUNNED!</h2>
+            <p className="text-red-300">โดนระเบิด! รอแป๊บนะ...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="w-full max-w-md bg-indigo-900 p-4 pb-12 rounded-b-3xl shadow-xl z-10 flex flex-col items-center relative">
+        {/* Opponents Status Bar */}
+        <div className="flex w-full justify-center gap-3 mb-4 overflow-x-auto pb-2">
+           {players.filter(p => p.uid !== user.uid).map(p => (
+             <div key={p.uid} className={`flex flex-col items-center transition-all ${p.status === 'stunned' ? 'opacity-50 scale-90' : ''}`}>
+               <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm bg-indigo-800 ${p.status === 'stunned' ? 'border-red-500' : 'border-green-400'}`}>
+                 {p.status === 'stunned' ? '😵' : '🙂'}
+               </div>
+               <span className="text-[10px] text-indigo-200 mt-1 max-w-[50px] truncate">{p.name}</span>
+             </div>
+           ))}
+        </div>
+
+        {/* Big Number */}
+        <div className="relative">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-orange-600 flex items-center justify-center border-4 border-white shadow-lg z-20 relative">
+              <span className="text-5xl font-black text-white drop-shadow-md">
+                {gameData?.currentNumber || '--'}
+              </span>
+            </div>
+        </div>
         
-        .cyber-grid-bg {
-            position: fixed; inset: 0; z-index: -1;
-            background-image: 
-                linear-gradient(rgba(6, 182, 212, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
-            background-size: 40px 40px;
-            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
-        }
+        {/* Host Status Text */}
+        {isHost && <p className="absolute bottom-2 text-xs text-indigo-400">คุณเป็น Host (ห้ามปิดจอนะ)</p>}
+      </div>
 
-        .glass-card {
-            background: rgba(10, 10, 15, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-        }
+      {/* Board */}
+      <div className="flex-1 w-full max-w-md p-4 flex flex-col items-center -mt-8 z-0">
+        <div className="bg-white p-3 rounded-2xl shadow-2xl w-full">
+           <div className="grid grid-cols-5 mb-2 text-center">
+             {['B', 'I', 'N', 'G', 'O'].map(l => <div key={l} className="text-2xl font-black text-indigo-900">{l}</div>)}
+           </div>
+           <div className="grid grid-cols-5 gap-2 aspect-square">
+             {localCard.map((cell) => {
+               const isMarked = cell.marked;
+               return (
+                 <button
+                   key={cell.id}
+                   onClick={() => handleCardClick(cell.id)}
+                   disabled={cell.value === 'FREE' || isMarked || myPlayerDoc?.status === 'stunned'}
+                   className={`
+                     relative rounded-lg flex items-center justify-center text-xl font-bold transition-all duration-150
+                     ${cell.value === 'FREE' ? 'bg-yellow-400 text-yellow-800' : isMarked ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100 shadow-sm border-b-4 border-indigo-200 active:translate-y-1 active:border-b-0'}
+                   `}
+                 >
+                   {cell.value === 'FREE' ? '⭐' : cell.value}
+                 </button>
+               );
+             })}
+           </div>
+        </div>
 
-        .input-field {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            transition: all 0.3s;
-        }
-        .input-field:focus {
-            border-color: #06b6d4;
-            box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
-            outline: none;
-        }
-        
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #000; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+        {/* Items */}
+        <div className="w-full mt-6 grid grid-cols-3 gap-4">
+          <ItemButton icon={<Search size={20} />} count={myPlayerDoc?.items?.search || 0} color="bg-blue-500" label="ช่วยหา" onClick={() => useItem('search')} />
+          <ItemButton icon={<Zap size={20} />} count={myPlayerDoc?.items?.bomb || 0} color="bg-red-500" label="ปาระเบิด" onClick={() => useItem('bomb')} />
+          <ItemButton icon={<Shield size={20} />} count={myPlayerDoc?.items?.shield || 0} color="bg-green-500" label="เกราะ" active={myPlayerDoc?.shieldActive} onClick={() => useItem('shield')} />
+        </div>
 
-        /* VIP & Frame Styles */
-        .frame-neon { border: 2px solid #06b6d4; box-shadow: 0 0 10px #06b6d4; }
-        .frame-gold { border: 2px solid #fbbf24; box-shadow: 0 0 10px #fbbf24; }
-        .frame-cyber { border: 2px solid #8b5cf6; box-shadow: 0 0 10px #8b5cf6; border-radius: 0; }
-        
-        .vip-silver { color: #e2e8f0; }
-        .vip-gold { color: #fbbf24; text-shadow: 0 0 5px rgba(251, 191, 36, 0.5); }
-        .vip-platinum { color: #22d3ee; text-shadow: 0 0 10px rgba(34, 211, 238, 0.5); }
-    </style>
-</head>
-<body>
-    <div class="cyber-grid-bg"></div>
-    <div id="root"></div>
+        {/* Logs */}
+        <div className="w-full mt-4 h-12 flex flex-col justify-end space-y-1 overflow-hidden">
+          {logs.map((log, i) => (
+             <div key={i} className="text-xs text-white/90 bg-slate-800/80 px-2 py-1 rounded self-center animate-fade-in-up">{log}</div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
-    <script type="text/babel">
-        // --- CONFIG ---
-        const firebaseConfig = {
-            apiKey: "", // Provided by environment usually, blank here for template
-            authDomain: "bingo-sato.firebaseapp.com",
-            projectId: "bingo-sato",
-            storageBucket: "bingo-sato.firebasestorage.app",
-            messagingSenderId: "348261448088",
-            appId: "1:348261448088:web:61c19861c88b3c5094d3ed"
-        };
-        
-        let finalConfig = firebaseConfig;
-        if (typeof __firebase_config !== 'undefined') {
-            try { finalConfig = JSON.parse(__firebase_config); } catch(e){}
-        }
-        
-        if (!firebase.apps.length) firebase.initializeApp(finalConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'sato-ultimate-v3';
+const ItemButton = ({ icon, count, color, label, onClick, active }) => (
+  <button onClick={onClick} disabled={count === 0} className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-xl shadow-md transition-all ${count === 0 ? 'bg-gray-400 grayscale cursor-not-allowed' : color} ${active ? 'ring-4 ring-white' : ''} text-white active:scale-95`}>
+    <div className="mb-1">{icon}</div>
+    <span className="text-xs font-bold">{label}</span>
+    <div className="absolute -top-2 -right-2 w-6 h-6 bg-white text-gray-800 rounded-full flex items-center justify-center text-xs font-bold shadow-sm border-2 border-gray-100">{count}</div>
+  </button>
+);
 
-        const { useState, useEffect, useRef, useMemo } = React;
-
-        // --- SOUND ENGINE ---
-        const SoundEngine = {
-            ctx: new (window.AudioContext || window.webkitAudioContext)(),
-            play(type) {
-                if (this.ctx.state === 'suspended') this.ctx.resume();
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.connect(gain); gain.connect(this.ctx.destination);
-                const now = this.ctx.currentTime;
-                
-                switch(type) {
-                    case 'hover':
-                        osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(300, now+0.05);
-                        gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now+0.1);
-                        break;
-                    case 'click':
-                        osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(100, now+0.1);
-                        gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.1);
-                        break;
-                    case 'win':
-                        osc.type = 'triangle'; osc.frequency.setValueAtTime(500, now); osc.frequency.linearRampToValueAtTime(1000, now+0.2);
-                        gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.4);
-                        break;
-                    case 'error':
-                        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now);
-                        gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now+0.3);
-                        break;
-                }
-                osc.start(now); osc.stop(now+0.5);
-            }
-        };
-
-        const Icon = ({ name, size = 20, className }) => <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
-
-        // --- SHOP ITEMS ---
-        const SHOP_ITEMS = [
-            { id: 'frame_neon', name: 'กรอบนีออน', type: 'frame', price: 2000, desc: 'กรอบเรืองแสงสีฟ้า', class: 'frame-neon' },
-            { id: 'frame_gold', name: 'กรอบทองคำ', type: 'frame', price: 5000, desc: 'กรอบทองหรูหรา', class: 'frame-gold' },
-            { id: 'frame_cyber', name: 'กรอบไซเบอร์', type: 'frame', price: 3000, desc: 'กรอบเหลี่ยม Cyberpunk', class: 'frame-cyber' },
-            { id: 'char_bot', name: 'หุ่นยนต์ซาโตะ', type: 'char', price: 1000, desc: 'ตัวละครเริ่มต้น', icon: '🤖' },
-            { id: 'char_alien', name: 'เอเลี่ยน', type: 'char', price: 2500, desc: 'ตัวละครต่างดาว', icon: '👽' },
-            { id: 'char_cat', name: 'แมวอวกาศ', type: 'char', price: 4000, desc: 'แมวน้อยน่ารัก', icon: '🐱' },
-            { id: 'vip_silver', name: 'VIP ระดับเงิน', type: 'vip', price: 10000, rank: 'SILVER', desc: 'สถานะ VIP ระดับเงิน' },
-            { id: 'vip_gold', name: 'VIP ระดับทอง', type: 'vip', price: 50000, rank: 'GOLD', desc: 'สถานะ VIP ระดับทอง' },
-        ];
-
-        // --- AUTH COMPONENT (MODAL) ---
-        const AuthModal = ({ onClose, onLogin, loading }) => {
-            const [username, setUsername] = useState('');
-            const [password, setPassword] = useState('');
-            const isAdmin = username.toLowerCase() === 'admin';
-
-            return (
-                <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 animate-fade-in">
-                    <div className="w-full max-w-sm p-8 glass-card rounded-2xl animate-slide-up border border-brand-accent/20 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4">
-                            <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
-                        </div>
-                        <div className="text-center mb-8">
-                            <h1 className="text-4xl font-cyber font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-accent to-white tracking-tighter">เข้าสู่ระบบ</h1>
-                            <p className="text-slate-500 text-xs font-thai mt-2">พิมพ์ชื่อเพื่อลงทะเบียนหรือเข้าใช้งาน</p>
-                        </div>
-                        <form onSubmit={(e)=>{e.preventDefault(); onLogin(username, password)}} className="space-y-4">
-                            <div className="relative group">
-                                <Icon name="user" className="absolute left-3 top-3 text-slate-500 group-focus-within:text-brand-accent" size={18}/>
-                                <input type="text" placeholder="ชื่อผู้ใช้งาน (Username)" className="input-field w-full pl-10 pr-4 py-3 rounded-lg font-thai text-sm" value={username} onChange={e=>setUsername(e.target.value)} autoFocus />
-                            </div>
-                            <div className={`transition-all duration-300 overflow-hidden ${isAdmin ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}`}>
-                                <input type="password" placeholder="รหัสผ่านแอดมิน" className="input-field w-full pl-10 pr-4 py-3 rounded-lg font-mono text-sm border-red-500/50" value={password} onChange={e=>setPassword(e.target.value)} />
-                            </div>
-                            <button disabled={loading || !username} className="w-full py-3 bg-white text-black font-bold font-thai text-lg rounded-lg hover:bg-brand-accent hover:scale-[1.02] transition-all disabled:opacity-50">
-                                {loading ? 'กำลังเชื่อมต่อ...' : 'ยืนยัน'}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- GAMES ---
-        
-        // 1. Bingo (Fixed Public Path & Removed OrderBy)
-        const BingoLobby = ({ user, db, onExit, updateCredits }) => {
-            const [rooms, setRooms] = useState([]);
-            const [activeRoom, setActiveRoom] = useState(null);
-            
-            useEffect(() => {
-                if(activeRoom) return;
-                
-                // FIX: Remove orderBy to prevent index errors in this environment
-                // Fetch all and sort client-side
-                const unsub = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms')
-                    .onSnapshot(
-                        snap => {
-                            const data = snap.docs.map(d => ({id:d.id, ...d.data()}));
-                            // Client-side sort: newest first
-                            data.sort((a,b) => (b.created?.seconds || 0) - (a.created?.seconds || 0));
-                            setRooms(data.slice(0, 20)); // Limit client-side
-                        },
-                        error => {
-                            console.error("Bingo Lobby Error:", error);
-                        }
-                    );
-                return () => unsub();
-            }, [activeRoom]);
-
-            const createRoom = async () => {
-                const name = prompt("ตั้งชื่อห้องของคุณ:"); if(!name) return;
-                try {
-                    const ref = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms').add({
-                        name, host: user.username, created: firebase.firestore.FieldValue.serverTimestamp(), numbers: [], status: 'waiting'
-                    });
-                    setActiveRoom(ref.id);
-                } catch(e) { console.error(e); alert("สร้างห้องไม่ได้: " + e.message); }
-            };
-
-            if(activeRoom) return <BingoRoom user={user} db={db} roomId={activeRoom} updateCredits={updateCredits} onLeave={()=>setActiveRoom(null)} />;
-
-            return (
-                <div className="h-full flex flex-col animate-slide-up">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-thai font-bold text-brand-accent">ห้องโถงบิงโก</h2>
-                        <button onClick={onExit} className="text-slate-400 hover:text-white flex items-center gap-1 text-sm"><Icon name="arrow-left" size={16}/> กลับ</button>
-                    </div>
-                    <button onClick={createRoom} className="w-full py-4 mb-4 bg-gradient-to-r from-brand-primary to-brand-secondary rounded-xl font-bold font-thai text-white hover:scale-[1.01] transition-transform shadow-lg">+ สร้างห้องใหม่</button>
-                    <div className="space-y-2 overflow-y-auto custom-scroll pr-2 flex-1">
-                        {rooms.map(r => (
-                            <div key={r.id} onClick={()=>setActiveRoom(r.id)} className="p-4 bg-white/5 border border-white/5 rounded-xl hover:border-brand-accent cursor-pointer flex justify-between items-center group">
-                                <div>
-                                    <div className="font-bold text-white group-hover:text-brand-accent font-thai">{r.name}</div>
-                                    <div className="text-xs text-slate-500 font-thai">เจ้าของ: {r.host}</div>
-                                </div>
-                                <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded font-thai">เข้าร่วม</span>
-                            </div>
-                        ))}
-                        {rooms.length === 0 && <div className="text-center text-slate-500 mt-10 font-thai">ยังไม่มีห้อง... สร้างเลย!</div>}
-                    </div>
-                </div>
-            );
-        };
-
-        const BingoRoom = ({ user, db, roomId, updateCredits, onLeave }) => {
-            const [gameState, setGameState] = useState(null);
-            const [board, setBoard] = useState([]);
-            
-            useEffect(() => {
-                const ref = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms').doc(roomId);
-                const unsub = ref.onSnapshot(
-                    doc => { 
-                        if(doc.exists) setGameState(doc.data()); 
-                        else onLeave(); 
-                    },
-                    err => console.error("Room Error:", err)
-                );
-                return () => unsub();
-            }, [roomId]);
-
-            const drawNumber = async () => {
-                if(!gameState) return;
-                let num; do { num = Math.floor(Math.random()*75)+1; } while(gameState.numbers?.includes(num));
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('bingo_rooms').doc(roomId).update({
-                    numbers: firebase.firestore.FieldValue.arrayUnion(num), lastNumber: num, status: 'playing'
-                });
-            };
-
-            const initBoard = () => {
-                if(user.credits < 50) return alert("เครดิตไม่พอ!");
-                updateCredits(-50);
-                const newBoard = Array(5).fill(0).map((_,c) => {
-                    const min=c*15+1; const nums=new Set();
-                    while(nums.size<5) nums.add(Math.floor(Math.random()*(min+14-min+1))+min);
-                    return Array.from(nums);
-                });
-                newBoard[2][2] = 'FREE';
-                setBoard(newBoard);
-            };
-
-            if(!gameState) return <div>Loading...</div>;
-
-            return (
-                <div className="h-full flex flex-col">
-                    <div className="flex justify-between items-center mb-4 pb-4 border-b border-white/10">
-                        <button onClick={onLeave} className="text-xs text-slate-400 font-thai">ออกจากห้อง</button>
-                        <div className="text-3xl font-bold text-brand-accent">{gameState.lastNumber || '--'}</div>
-                        <div className="text-xs text-slate-400 font-thai">เจ้าของ: {gameState.host}</div>
-                    </div>
-                    <div className="flex-1 flex flex-col items-center justify-center">
-                        {board.length === 0 ? (
-                            <div className="text-center">
-                                <div className="text-6xl mb-4">🎫</div>
-                                <button onClick={initBoard} className="px-8 py-3 bg-brand-accent text-black font-bold font-thai rounded-full hover:scale-105 transition-transform">ซื้อตั๋ว (50 เครดิต)</button>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-5 gap-2 w-full max-w-[320px]">
-                                {['B','I','N','G','O'].map(l=><div key={l} className="text-center font-black text-brand-secondary">{l}</div>)}
-                                {board.map((col, c) => col.map((n, r) => {
-                                    const marked = n === 'FREE' || gameState.numbers?.includes(n);
-                                    return <div key={`${c}-${r}`} className={`aspect-square flex items-center justify-center rounded font-bold ${marked?'bg-brand-primary text-white shadow-lg':'bg-white/5 text-slate-500'}`}>{n==='FREE'?'★':n}</div>
-                                }))}
-                            </div>
-                        )}
-                    </div>
-                    {user.username === gameState.host && (
-                        <div className="mt-4"><button onClick={drawNumber} className="w-full py-4 bg-white text-black font-bold font-thai rounded-xl hover:bg-brand-accent">สุ่มตัวเลข</button></div>
-                    )}
-                </div>
-            );
-        };
-
-        // 2. Memory Match
-        const MemoryMatch = ({ updateCredits, onExit }) => {
-            const [cards, setCards] = useState([]);
-            const [turns, setTurns] = useState(0);
-            const [level, setLevel] = useState(null); // 4 or 6
-            const [flipped, setFlipped] = useState([]);
-            const [solved, setSolved] = useState([]);
-
-            const ICONS = ['🚀','🛸','👾','🤖','💎','⚡','🔥','🌟','🍀','🎵','🎮','🕹️','💿','💾','🔋','🔧','🔨','⚙️'];
-
-            const startGame = (size) => {
-                const numPairs = (size * size) / 2;
-                const gameIcons = ICONS.slice(0, numPairs);
-                const deck = [...gameIcons, ...gameIcons].sort(()=>Math.random()-0.5).map((icon, id)=>({id, icon}));
-                setCards(deck); setLevel(size); setTurns(0); setSolved([]); setFlipped([]);
-            };
-
-            const handleCardClick = (id) => {
-                if(flipped.length === 2 || flipped.includes(id) || solved.includes(id)) return;
-                const newFlipped = [...flipped, id];
-                setFlipped(newFlipped);
-                if(newFlipped.length === 2) {
-                    setTurns(t=>t+1);
-                    const [id1, id2] = newFlipped;
-                    if(cards[id1].icon === cards[id2].icon) {
-                        setSolved(prev => [...prev, id1, id2]);
-                        setFlipped([]);
-                        if(solved.length + 2 === cards.length) {
-                            setTimeout(() => {
-                                const reward = level === 4 ? 100 : 300;
-                                updateCredits(reward);
-                                alert(`ยินดีด้วย! คุณได้รับ +${reward} เครดิต`);
-                                setLevel(null);
-                            }, 500);
-                        }
-                    } else {
-                        setTimeout(() => setFlipped([]), 1000);
-                    }
-                }
-            };
-
-            if(!level) return (
-                <div className="h-full flex flex-col items-center justify-center gap-6 animate-slide-up">
-                    <h2 className="text-3xl font-thai font-bold text-brand-secondary">เกมจับคู่ภาพ</h2>
-                    <div className="grid grid-cols-2 gap-4 w-full px-8">
-                        <button onClick={()=>startGame(4)} className="p-6 bg-white/5 border border-white/10 rounded-xl hover:border-green-400 hover:text-green-400 transition-all">
-                            <div className="text-xl font-bold font-thai">ทั่วไป</div>
-                            <div className="text-xs text-slate-500 font-thai">ตาราง 4x4</div>
-                        </button>
-                        <button onClick={()=>startGame(6)} className="p-6 bg-white/5 border border-white/10 rounded-xl hover:border-red-400 hover:text-red-400 transition-all">
-                            <div className="text-xl font-bold font-thai">ยาก</div>
-                            <div className="text-xs text-slate-500 font-thai">ตาราง 6x6</div>
-                        </button>
-                    </div>
-                    <button onClick={onExit} className="text-slate-500 hover:text-white mt-4 font-thai">ออก</button>
-                </div>
-            );
-
-            return (
-                <div className="h-full flex flex-col items-center animate-fade-in">
-                    <div className="flex justify-between w-full mb-4">
-                        <button onClick={()=>setLevel(null)} className="text-xs text-slate-400 font-thai">ยอมแพ้</button>
-                        <div className="text-brand-accent font-thai">จำนวนครั้ง: {turns}</div>
-                    </div>
-                    <div className={`grid gap-2 w-full max-w-[400px] aspect-square ${level===4?'grid-cols-4':'grid-cols-6'}`}>
-                        {cards.map((c, i) => (
-                            <div key={i} onClick={()=>handleCardClick(i)} className={`
-                                rounded-lg flex items-center justify-center text-2xl cursor-pointer transition-all duration-300 transform
-                                ${flipped.includes(i) || solved.includes(i) ? 'bg-brand-primary rotate-y-180 text-white' : 'bg-white/10 hover:bg-white/20 text-transparent'}
-                            `}>
-                                {(flipped.includes(i) || solved.includes(i)) ? c.icon : '?'}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        };
-
-        // 3. Cyber Fly (Flappy Style)
-        const CyberFly = ({ updateCredits, onExit }) => {
-            const canvasRef = useRef(null);
-            const [playing, setPlaying] = useState(false);
-            const [score, setScore] = useState(0);
-            const [difficulty, setDifficulty] = useState(null); // 'easy', 'hard'
-
-            useEffect(() => {
-                if(!playing) return;
-                const cvs = canvasRef.current;
-                const ctx = cvs.getContext('2d');
-                let frames = 0;
-                let bird = { x: 50, y: 150, v: 0, r: 10 };
-                let pipes = [];
-                let loopId;
-                const gap = difficulty === 'hard' ? 80 : 120;
-                const speed = difficulty === 'hard' ? 3 : 2;
-
-                const loop = () => {
-                    frames++;
-                    ctx.fillStyle = '#000'; ctx.fillRect(0,0,300,400);
-                    
-                    // Bird
-                    bird.v += 0.15; bird.y += bird.v;
-                    ctx.fillStyle = '#06b6d4'; ctx.beginPath(); ctx.arc(bird.x, bird.y, bird.r, 0, Math.PI*2); ctx.fill();
-
-                    // Pipes
-                    if(frames % 120 === 0) {
-                        let h = Math.random() * (400 - gap - 100) + 50;
-                        pipes.push({ x: 300, top: h });
-                    }
-                    
-                    for(let i=0; i<pipes.length; i++) {
-                        let p = pipes[i];
-                        p.x -= speed;
-                        ctx.fillStyle = '#8b5cf6';
-                        ctx.fillRect(p.x, 0, 40, p.top);
-                        ctx.fillRect(p.x, p.top + gap, 40, 400 - p.top - gap);
-
-                        if(p.x + 40 < 0) { pipes.shift(); i--; setScore(s=>s+1); }
-
-                        // Collision
-                        if(
-                            bird.y - bird.r < 0 || bird.y + bird.r > 400 ||
-                            (bird.x + bird.r > p.x && bird.x - bird.r < p.x + 40 &&
-                            (bird.y - bird.r < p.top || bird.y + bird.r > p.top + gap))
-                        ) {
-                            setPlaying(false);
-                            const reward = score * (difficulty==='hard'?10:5);
-                            updateCredits(reward);
-                            alert(`จบเกม! คะแนน: ${score} (+${reward} เครดิต)`);
-                            cancelAnimationFrame(loopId);
-                            return;
-                        }
-                    }
-                    loopId = requestAnimationFrame(loop);
-                };
-                loopId = requestAnimationFrame(loop);
-                
-                const jump = () => bird.v = -3.5;
-                cvs.addEventListener('click', jump);
-                return () => { cvs.removeEventListener('click', jump); cancelAnimationFrame(loopId); }
-            }, [playing]);
-
-            if(!difficulty) return (
-                <div className="h-full flex flex-col items-center justify-center gap-6 animate-slide-up">
-                    <h2 className="text-3xl font-cyber text-brand-accent">CYBER FLY</h2>
-                    <div className="flex gap-4">
-                        <button onClick={()=>setDifficulty('easy')} className="px-6 py-3 bg-green-500/20 text-green-400 border border-green-500/50 rounded-xl hover:bg-green-500 hover:text-black font-thai">โหมดง่าย</button>
-                        <button onClick={()=>setDifficulty('hard')} className="px-6 py-3 bg-red-500/20 text-red-400 border border-red-500/50 rounded-xl hover:bg-red-500 hover:text-white font-thai">โหมดยาก</button>
-                    </div>
-                    <button onClick={onExit} className="text-slate-500 text-xs font-thai">กลับ</button>
-                </div>
-            );
-
-            return (
-                <div className="h-full flex flex-col items-center">
-                    {!playing ? (
-                         <div className="text-center mt-20">
-                             <div className="text-4xl font-bold text-white mb-4">{score}</div>
-                             <button onClick={()=>{setScore(0); setPlaying(true)}} className="px-8 py-4 bg-white text-black font-bold rounded-full font-thai">แตะเพื่อเริ่ม</button>
-                             <div className="mt-4"><button onClick={()=>setDifficulty(null)} className="text-xs text-slate-400 font-thai">เปลี่ยนโหมด</button></div>
-                         </div>
-                    ) : (
-                        <div className="relative">
-                            <canvas ref={canvasRef} width="300" height="400" className="border border-white/10 rounded-xl bg-black"></canvas>
-                            <div className="absolute top-2 left-2 text-white font-bold text-xl">{score}</div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        // --- SHOP & INVENTORY ---
-        const ShopModal = ({ user, updateCredits, equipItem, onClose, buyItem }) => {
-            const [tab, setTab] = useState('shop'); // shop, inventory
-            
-            const inventory = user.inventory || [];
-            const userItems = SHOP_ITEMS.filter(i => inventory.includes(i.id));
-
-            return (
-                <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
-                    <div className="glass-card w-full max-w-2xl h-[80vh] flex flex-col rounded-2xl overflow-hidden">
-                        <div className="flex p-4 border-b border-white/10">
-                            <button onClick={()=>setTab('shop')} className={`flex-1 py-2 font-bold font-thai ${tab==='shop'?'text-brand-accent border-b-2 border-brand-accent':'text-slate-500'}`}>ร้านค้า</button>
-                            <button onClick={()=>setTab('inventory')} className={`flex-1 py-2 font-bold font-thai ${tab==='inventory'?'text-brand-accent border-b-2 border-brand-accent':'text-slate-500'}`}>กระเป๋า</button>
-                            <button onClick={onClose} className="px-4 text-slate-500">✕</button>
-                        </div>
-                        
-                        <div className="flex-1 overflow-y-auto p-4 custom-scroll">
-                            {tab === 'shop' ? (
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                    {SHOP_ITEMS.map(item => {
-                                        const owned = inventory.includes(item.id) || (item.type==='vip' && user.vipRank===item.rank);
-                                        return (
-                                            <div key={item.id} className="p-3 bg-white/5 border border-white/5 rounded-xl flex flex-col items-center text-center">
-                                                <div className="text-3xl mb-2">{item.icon || '📦'}</div>
-                                                <div className="font-bold text-sm text-white font-thai">{item.name}</div>
-                                                <div className="text-xs text-slate-400 mb-2 font-thai">{item.desc}</div>
-                                                <button 
-                                                    disabled={owned || user.credits < item.price}
-                                                    onClick={()=>buyItem(item)}
-                                                    className={`w-full py-1 text-xs font-bold rounded font-thai ${owned ? 'bg-slate-700 text-slate-500' : 'bg-brand-primary text-white hover:bg-brand-accent'}`}
-                                                >
-                                                    {owned ? 'ครอบครองแล้ว' : `${item.price} 🪙`}
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                    {userItems.map(item => (
-                                        <div key={item.id} className="p-3 bg-white/5 border border-white/5 rounded-xl flex flex-col items-center text-center">
-                                            <div className="text-3xl mb-2">{item.icon || '🎒'}</div>
-                                            <div className="font-bold text-sm text-white font-thai">{item.name}</div>
-                                            {item.type !== 'vip' && (
-                                                <button 
-                                                    onClick={()=>equipItem(item.type, item.id)}
-                                                    className={`mt-2 w-full py-1 text-xs font-bold rounded font-thai ${user.equipped?.[item.type] === item.id ? 'bg-green-500 text-black' : 'bg-white/10 hover:bg-white/20'}`}
-                                                >
-                                                    {user.equipped?.[item.type] === item.id ? 'ใช้อยู่' : 'ใช้งาน'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                    {userItems.length === 0 && <div className="col-span-3 text-center text-slate-500 mt-10 font-thai">ไม่มีไอเทม</div>}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- MAIN APP ---
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [page, setPage] = useState('home');
-            const [loading, setLoading] = useState(true);
-            const [showShop, setShowShop] = useState(false);
-            const [showAuthModal, setShowAuthModal] = useState(false);
-            const [authLoading, setAuthLoading] = useState(false);
-            const [announcement, setAnnouncement] = useState('ยินดีต้อนรับสู่ ซาโตะ อาเขต • รับรางวัลฟรีทุกวัน 100 เครดิต • เกมใหม่มาแล้ว!');
-
-            useEffect(() => {
-                if(window.lucide) window.lucide.createIcons();
-                
-                // FIX: Auth Priority Check to prevent "Permission Denied"
-                const initAuth = async () => {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        try {
-                            await auth.signInWithCustomToken(__initial_auth_token);
-                        } catch(e) { 
-                            console.error("Token Auth Failed", e); 
-                            if (!auth.currentUser) await auth.signInAnonymously();
-                        }
-                    } else {
-                        if (!auth.currentUser) {
-                            try { await auth.signInAnonymously(); } catch(e) { console.error("Anon Auth Failed", e); }
-                        }
-                    }
-                };
-                initAuth();
-
-                const unsub = auth.onAuthStateChanged(async (u) => {
-                    if (u) {
-                        const ref = db.collection('artifacts').doc(APP_ID).collection('users').doc(u.uid).collection('profile').doc('userData');
-                        
-                        ref.onSnapshot(doc => {
-                            if(doc.exists) {
-                                setUser({uid: u.uid, ...doc.data()});
-                            } else {
-                                const guestData = {
-                                    username: `ผู้เยี่ยมชม_${Math.floor(Math.random()*999)}`,
-                                    username_lower: `guest`,
-                                    credits: 500, xp: 0, vipRank: 'NONE', role: 'guest',
-                                    dailyReward: { count: 0 }, inventory: [], equipped: {}
-                                };
-                                ref.set(guestData);
-                                setUser({uid: u.uid, ...guestData});
-                            }
-                            setLoading(false);
-                        }, err => {
-                            console.error("Profile Snapshot Error:", err);
-                            // Fallback to stop loading spinner
-                            setLoading(false);
-                        });
-                    }
-                });
-                return () => unsub();
-            }, []);
-            
-            useEffect(() => { if(!loading && window.lucide) window.lucide.createIcons(); }, [page, loading, showShop]);
-
-            const handleLogin = async (username, password) => {
-                setAuthLoading(true);
-                try {
-                    if (!auth.currentUser) await auth.signInAnonymously();
-                    const uid = auth.currentUser.uid;
-                    const lowerUser = username.toLowerCase();
-                    
-                    if (lowerUser === 'admin' && password !== '1234') throw new Error('รหัสผ่านผิด');
-
-                    // NOTE: Removed complex queries here just in case, but keeping simple 'where' if supported
-                    const dirRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users_directory');
-                    const snap = await dirRef.where('username_lower', '==', lowerUser).limit(1).get();
-                    
-                    let newData = { 
-                        username, username_lower: lowerUser, credits: 1000, xp: 0, vipRank: 'NONE', 
-                        dailyReward: { count: 0, lastClaim: null }, inventory: [], equipped: {} 
-                    };
-
-                    if (!snap.empty) {
-                        const d = snap.docs[0].data();
-                        newData = { ...newData, credits: d.credits, xp: d.xp, vipRank: d.vipRank };
-                    } else {
-                        if (lowerUser === 'admin') newData = { ...newData, credits: 999999, vipRank: 'PLATINUM', role: 'admin' };
-                    }
-
-                    await db.collection('artifacts').doc(APP_ID).collection('users').doc(uid).collection('profile').doc('userData').set(newData, {merge: true});
-                    // Only update directory if strict rules allow (public write might be restricted, but try)
-                    try {
-                        await dirRef.doc(uid).set({ username, username_lower: lowerUser, credits: newData.credits, xp: newData.xp, vipRank: newData.vipRank });
-                    } catch(e) { console.warn("Public directory update skipped", e); }
-                    
-                    setShowAuthModal(false);
-                    SoundEngine.play('win');
-                    alert(`ยินดีต้อนรับ, ${username}!`);
-                } catch(e) { alert(e.message); }
-                finally { setAuthLoading(false); }
-            };
-
-            const updateCredits = (amt) => {
-                if(!user) return;
-                const newCreds = (user.credits || 0) + amt;
-                db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid).collection('profile').doc('userData').update({ credits: newCreds });
-                if(user.role !== 'guest') {
-                    try {
-                        db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users_directory').doc(user.uid).update({ credits: newCreds });
-                    } catch(e) {}
-                }
-            };
-
-            const buyItem = (item) => {
-                if(user.credits < item.price) return alert("เครดิตไม่พอ");
-                const updates = { credits: user.credits - item.price };
-                if(item.type === 'vip') updates.vipRank = item.rank;
-                else updates.inventory = firebase.firestore.FieldValue.arrayUnion(item.id);
-                
-                db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid).collection('profile').doc('userData').update(updates);
-                alert(`ซื้อ ${item.name} สำเร็จ!`);
-            };
-
-            const equipItem = (type, id) => {
-                db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid).collection('profile').doc('userData').update({ [`equipped.${type}`]: id });
-            };
-
-            const handleDailyReward = () => {
-                const now = new Date();
-                const lastClaim = user.dailyReward?.lastClaim?.toDate() || new Date(0);
-                const isSameDay = now.toDateString() === lastClaim.toDateString();
-                let count = isSameDay ? (user.dailyReward?.count || 0) : 0;
-                
-                const timeDiff = now - lastClaim;
-                if (isSameDay && timeDiff < 3600000) return alert(`กรุณารออีก ${Math.ceil((3600000 - timeDiff)/60000)} นาที`);
-                
-                if (count >= 5) return alert("ครบโควต้าวันนี้แล้ว (5/5) พรุ่งนี้มาใหม่นะ!");
-
-                db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid).collection('profile').doc('userData').update({
-                    credits: user.credits + 100,
-                    'dailyReward.count': count + 1,
-                    'dailyReward.lastClaim': firebase.firestore.FieldValue.serverTimestamp()
-                });
-                alert("รับแล้ว 100 เครดิต!");
-            };
-
-            if(loading) return <div className="min-h-screen flex items-center justify-center text-brand-accent font-thai animate-pulse text-2xl">กำลังเข้าสู่ระบบ...</div>;
-
-            const frameClass = SHOP_ITEMS.find(i => i.id === user.equipped?.frame)?.class || 'border-white/20';
-            const charIcon = SHOP_ITEMS.find(i => i.id === user.equipped?.char)?.icon || user.username.charAt(0);
-
-            return (
-                <div className="min-h-screen max-w-6xl mx-auto p-4 flex flex-col relative z-10">
-                    <header className="glass-card p-4 rounded-2xl flex justify-between items-center mb-6 animate-fade-in">
-                        <div className="flex items-center gap-4">
-                            <div className={`w-14 h-14 rounded-xl bg-slate-900 flex items-center justify-center text-2xl font-bold ${frameClass}`}>
-                                {charIcon}
-                            </div>
-                            <div>
-                                <div className="font-thai text-xl text-white flex items-center gap-2 font-bold">
-                                    {user.username} 
-                                    {user.vipRank !== 'NONE' && <span className="text-[10px] bg-brand-primary px-2 rounded font-cyber">{user.vipRank}</span>}
-                                </div>
-                                <div className="text-xs text-slate-400 font-thai font-bold">เครดิต: {user.credits.toLocaleString()}</div>
-                            </div>
-                        </div>
-                        <div className="flex gap-2 items-center">
-                            <button onClick={()=>setShowAuthModal(true)} className="px-4 py-2 bg-brand-primary/20 text-brand-primary rounded-lg border border-brand-primary/50 text-xs font-bold hover:bg-brand-primary hover:text-white transition-all font-thai">
-                                {user.role === 'guest' ? 'เข้าสู่ระบบ' : 'เปลี่ยนบัญชี'}
-                            </button>
-                            <button onClick={()=>setShowShop(true)} className="p-3 bg-white/5 rounded-xl hover:bg-brand-accent hover:text-black transition-all"><Icon name="shopping-bag"/></button>
-                        </div>
-                    </header>
-
-                    <div className="w-full bg-brand-primary/10 border-y border-brand-primary/30 mb-6 overflow-hidden py-1">
-                        <div className="whitespace-nowrap animate-marquee text-xs font-thai text-brand-accent font-bold">
-                            {announcement}
-                        </div>
-                    </div>
-
-                    <main className="flex-1">
-                        {page === 'home' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
-                                <div onClick={()=>setPage('bingo')} className="group relative h-64 rounded-3xl overflow-hidden cursor-pointer border border-white/10 hover:border-brand-accent transition-all">
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent z-10"></div>
-                                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1518544806352-a228605200bd?auto=format&fit=crop&q=80')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
-                                    <div className="absolute bottom-0 left-0 p-6 z-20">
-                                        <h3 className="text-3xl font-cyber text-white mb-1 group-hover:text-brand-accent transition-colors">BINGO</h3>
-                                        <p className="text-sm text-slate-300 font-thai">ห้องเกมบิงโกออนไลน์</p>
-                                    </div>
-                                </div>
-
-                                <div onClick={()=>setPage('runner')} className="group relative h-64 rounded-3xl overflow-hidden cursor-pointer border border-white/10 hover:border-brand-secondary transition-all">
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent z-10"></div>
-                                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
-                                    <div className="absolute bottom-0 left-0 p-6 z-20">
-                                        <h3 className="text-3xl font-cyber text-white mb-1 group-hover:text-brand-secondary transition-colors">CYBER FLY</h3>
-                                        <p className="text-sm text-slate-300 font-thai">บินหลบสิ่งกีดขวาง</p>
-                                    </div>
-                                </div>
-
-                                <div onClick={()=>setPage('memory')} className="group relative h-64 rounded-3xl overflow-hidden cursor-pointer border border-white/10 hover:border-green-400 transition-all">
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent z-10"></div>
-                                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1614728263952-84ea256f9679?auto=format&fit=crop&q=80')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
-                                    <div className="absolute bottom-0 left-0 p-6 z-20">
-                                        <h3 className="text-3xl font-cyber text-white mb-1 group-hover:text-green-400 transition-colors">MEMORY</h3>
-                                        <p className="text-sm text-slate-300 font-thai">ฝึกความจำจับคู่ภาพ</p>
-                                    </div>
-                                </div>
-
-                                <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="glass-card p-6 rounded-2xl flex items-center justify-between">
-                                        <div>
-                                            <h4 className="font-thai font-bold text-lg text-brand-accent">รับรางวัลรายวัน</h4>
-                                            <p className="text-xs text-slate-500 font-thai">รีเซ็ตทุกเที่ยงคืน • รับได้ทุก 1 ชม.</p>
-                                        </div>
-                                        <button onClick={handleDailyReward} className="px-6 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-brand-accent hover:text-black transition-all font-bold text-sm font-thai">
-                                            รับ (100)
-                                        </button>
-                                    </div>
-                                    <div className="glass-card p-6 rounded-2xl flex items-center justify-between">
-                                        <div>
-                                            <h4 className="font-thai font-bold text-lg text-purple-400">อันดับผู้เล่น</h4>
-                                            <p className="text-xs text-slate-500 font-thai">สุดยอดผู้เล่นประจำซีซั่น</p>
-                                        </div>
-                                        <div className="text-2xl font-bold text-white font-cyber">#1 CyberKing</div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {page === 'bingo' && <BingoLobby user={user} db={db} onExit={()=>setPage('home')} updateCredits={updateCredits} />}
-                        {page === 'runner' && <CyberFly onExit={()=>setPage('home')} updateCredits={updateCredits} />}
-                        {page === 'memory' && <MemoryMatch onExit={()=>setPage('home')} updateCredits={updateCredits} />}
-                    </main>
-
-                    {showShop && <ShopModal user={user} updateCredits={updateCredits} equipItem={equipItem} buyItem={buyItem} onClose={()=>setShowShop(false)} />}
-                    {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)} onLogin={handleLogin} loading={authLoading} />}
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
-
-
+export default GameApp;
